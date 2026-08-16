@@ -91,7 +91,11 @@ export function errorResponse(err: unknown): NextResponse {
   // cannot possibly succeed, so name the actual cause instead.
   const message = err instanceof Error ? err.message : "";
   const isDbDown =
-    /Can't reach database server|ECONNREFUSED|ENOTFOUND|Environment variable not found: DATABASE_URL/i.test(message);
+    /Can't reach database server|ECONNREFUSED|ENOTFOUND|Environment variable not found: DATABASE_URL/i.test(message) ||
+    // What Prisma actually says when DATABASE_URL is unset: it validates the
+    // datasource before attempting a connection, so the failure surfaces as a
+    // protocol complaint rather than a missing-variable error.
+    /the URL must start with the protocol|Invalid `prisma\..+` invocation/i.test(message);
   const isSchemaMissing = /does not exist in the current database|relation ".+" does not exist|P2021/i.test(message);
 
   if (isDbDown || isSchemaMissing) {
