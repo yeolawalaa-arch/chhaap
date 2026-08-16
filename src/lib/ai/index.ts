@@ -2,6 +2,7 @@ import { env } from "@/lib/config/env";
 import { db } from "@/lib/db/client";
 import { encodeJson } from "@/lib/db/json";
 import { AnthropicProvider } from "@/lib/ai/anthropic";
+import { GeminiProvider } from "@/lib/ai/gemini";
 import { HeuristicProvider } from "@/lib/ai/heuristic";
 import type { AiProvider, AiResult } from "@/lib/ai/types";
 
@@ -29,6 +30,15 @@ export function aiProvider(): AiProvider {
         break;
       }
       console.warn("[ai] AI_PROVIDER=anthropic but ANTHROPIC_API_KEY is unset — using the built-in engine.");
+      cached = new HeuristicProvider();
+      break;
+
+    case "gemini":
+      if (env.GEMINI_API_KEY) {
+        cached = new GeminiProvider(env.GEMINI_API_KEY);
+        break;
+      }
+      console.warn("[ai] AI_PROVIDER=gemini but GEMINI_API_KEY is unset — using the built-in engine.");
       cached = new HeuristicProvider();
       break;
 

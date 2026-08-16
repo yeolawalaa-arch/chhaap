@@ -39,11 +39,13 @@ const schema = z.object({
 
   // --- AI providers -----------------------------------------------------
   /** heuristic = the built-in deterministic Brand Brain (no network needed). */
-  AI_PROVIDER: z.enum(["heuristic", "anthropic", "openai"]).default("heuristic"),
+  AI_PROVIDER: z.enum(["heuristic", "anthropic", "openai", "gemini"]).default("heuristic"),
   ANTHROPIC_API_KEY: z.string().optional(),
   ANTHROPIC_MODEL: z.string().default("claude-sonnet-5"),
   OPENAI_API_KEY: z.string().optional(),
   OPENAI_MODEL: z.string().default("gpt-4o-mini"),
+  GEMINI_API_KEY: z.string().optional(),
+  GEMINI_MODEL: z.string().default("gemini-2.5-flash"),
   AI_TIMEOUT_MS: z.coerce.number().int().positive().default(45_000),
 
   // --- OAuth ------------------------------------------------------------
@@ -178,7 +180,15 @@ export interface IntegrationState {
 export function integrationStatus(): Record<IntegrationKey, IntegrationState> {
   const aiLive =
     (env.AI_PROVIDER === "anthropic" && !!env.ANTHROPIC_API_KEY) ||
-    (env.AI_PROVIDER === "openai" && !!env.OPENAI_API_KEY);
+    (env.AI_PROVIDER === "openai" && !!env.OPENAI_API_KEY) ||
+    (env.AI_PROVIDER === "gemini" && !!env.GEMINI_API_KEY);
+
+  const aiModel =
+    env.AI_PROVIDER === "anthropic"
+      ? env.ANTHROPIC_MODEL
+      : env.AI_PROVIDER === "gemini"
+        ? env.GEMINI_MODEL
+        : env.OPENAI_MODEL;
 
   return {
     ai: {
@@ -186,7 +196,7 @@ export function integrationStatus(): Record<IntegrationKey, IntegrationState> {
       label: "AI copy provider",
       live: aiLive,
       detail: aiLive
-        ? `${env.AI_PROVIDER} (${env.AI_PROVIDER === "anthropic" ? env.ANTHROPIC_MODEL : env.OPENAI_MODEL})`
+        ? `${env.AI_PROVIDER} (${aiModel})`
         : "Built-in Brand Brain engine (deterministic, no external API)",
     },
     googleOAuth: {
