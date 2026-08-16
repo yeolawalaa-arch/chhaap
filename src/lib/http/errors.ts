@@ -86,6 +86,29 @@ export function errorResponse(err: unknown): NextResponse {
     );
   }
 
+  // A database that is unreachable or has no schema is an operator problem, not
+  // a user one. Saying "something went wrong" sends people to retry a form that
+  // cannot possibly succeed, so name the actual cause instead.
+  const message = err instanceof Error ? err.message : "";
+  const isDbDown =
+    /Can't reach database server|ECONNREFUSED|ENOTFOUND|Environment variable not found: DATABASE_URL/i.test(message);
+  const isSchemaMissing = /does not exist in the current database|relation ".+" does not exist|P2021/i.test(message);
+
+  if (isDbDown || isSchemaMissing) {
+    console.error("[database]", message);
+    return NextResponse.json(
+      {
+        error: {
+          code: "provider_unavailable",
+          message: isSchemaMissing
+            ? "The database is connected but has no schema yet. Migrations need to be run to finish setup."
+            : "No database is connected to this deployment yet, so accounts are unavailable. Browsing and brand previews still work.",
+        },
+      },
+      { status: 503 },
+    );
+  }
+
   console.error("[unhandled]", err);
   return NextResponse.json(
     { error: { code: "internal", message: "Something went wrong on our side." } },

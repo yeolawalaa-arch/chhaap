@@ -2,6 +2,8 @@
 
 **Build a brand, not just a logo.**
 
+**Live: https://chhaap-eight.vercel.app**
+
 A branding platform for Indian businesses. A user answers five questions about
 their business and gets a complete, internally-consistent brand identity — logo
 in eight variations, palette, typography, patterns, brand voice, and business
@@ -10,6 +12,21 @@ assets from visiting cards to shop signboards — all rendered from one system.
 *Chhaap* (छाप) means an imprint or impression: the mark a business leaves.
 
 ---
+
+## Deployment
+
+Hosted on Vercel (Hobby — free) with the repo at
+`github.com/yeolawalaa-arch/chhaap`; pushes to `main` deploy automatically.
+
+Two things worth knowing:
+
+- **Fonts are committed and traced into the export function.** `public/` is
+  CDN-served and absent from the serverless filesystem, so `outputFileTracingIncludes`
+  in `next.config.ts` is what stops PDF export from failing in production while
+  passing locally.
+- **Vercel's Hobby plan is licensed for non-commercial use.** This is fine for a
+  demo; running Chhaap as a real business on it would need a paid plan or a
+  different host.
 
 ## Running it
 
