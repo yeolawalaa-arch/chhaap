@@ -37,6 +37,7 @@ function build(): Db {
   const isPostgres = !!databaseUrl && /^postgres(ql)?:\/\//.test(databaseUrl);
 
   if (isPostgres) {
+    activeBackend = "postgresql";
     console.log("[db] backend: postgresql");
     return new PrismaClient({ log: process.env.NODE_ENV === "development" ? ["warn", "error"] : ["error"] });
   }
@@ -48,7 +49,8 @@ function build(): Db {
   }
 
   if (blobToken) {
-    console.log("[db] backend: vercel-blob (DATABASE_URL unset)");
+    activeBackend = "vercel-blob";
+    console.log("[db] backend: vercel-blob");
     return createBlobClient() as unknown as Db;
   }
 
@@ -57,6 +59,9 @@ function build(): Db {
   console.error("[db] no backend: neither DATABASE_URL nor BLOB_READ_WRITE_TOKEN is set");
   return new PrismaClient({ log: ["error"] });
 }
+
+/** Which backend was actually selected. Reported by /api/health. */
+export let activeBackend: "postgresql" | "vercel-blob" | "none" = "none";
 
 export const db: Db = globalForDb.db ?? build();
 

@@ -13,18 +13,15 @@ export const dynamic = "force-dynamic";
 export async function GET() {
   const has = (key: string) => Boolean(process.env[key]);
 
-  const backend = process.env.DATABASE_URL
-    ? "postgresql"
-    : process.env.BLOB_READ_WRITE_TOKEN
-      ? "vercel-blob"
-      : "none";
+  // Reported by the module that actually chose, not re-derived here — the two
+  // disagreeing is exactly the confusion this endpoint exists to prevent.
+  const { db, activeBackend } = await import("@/lib/db/client");
 
   // Prove the chosen backend actually answers, rather than only that a
   // variable exists.
   let storageOk = false;
   let storageError: string | null = null;
   try {
-    const { db } = await import("@/lib/db/client");
     await db.user.count();
     storageOk = true;
   } catch (err) {
@@ -34,7 +31,7 @@ export async function GET() {
   return NextResponse.json(
     {
       ok: storageOk,
-      backend,
+      backend: activeBackend,
       storage: { reachable: storageOk, error: storageError },
       config: {
         DATABASE_URL: has("DATABASE_URL"),

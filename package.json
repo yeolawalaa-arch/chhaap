@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "prisma generate && next build",
+    "build": "tsx scripts/gen-defaults.ts && prisma generate && next build",
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
@@ -20,8 +20,9 @@
     "db:seed": "tsx prisma/seed.ts",
     "fonts:fetch": "tsx scripts/fetch-fonts.ts",
     "setup": "npm run db:generate:local && npm run db:push:local && npm run fonts:fetch && npm run db:seed",
-    "vercel-build": "prisma generate && tsx scripts/deploy-migrate.ts && next build",
-    "db:seed:prod": "tsx prisma/seed.ts"
+    "vercel-build": "tsx scripts/gen-defaults.ts && prisma generate && tsx scripts/deploy-migrate.ts && next build",
+    "db:seed:prod": "tsx prisma/seed.ts",
+    "gen:defaults": "tsx scripts/gen-defaults.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

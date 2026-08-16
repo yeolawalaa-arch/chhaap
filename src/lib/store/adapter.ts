@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { blobStore, type Doc } from "@/lib/store/blob-store";
+import { MODEL_DEFAULTS, MODEL_NULLABLE } from "@/lib/store/defaults";
 
 /**
  * A Prisma-shaped facade over the Blob document store.
@@ -242,9 +243,23 @@ function model(name: string) {
 
     async create({ data, include }: { data: Record<string, unknown>; include?: Record<string, unknown> }) {
       const { nested, scalars } = splitNested(data);
+
+      // PostgreSQL applies @default(...) itself. The Blob store has no schema,
+      // so those columns must be materialised here or they come back
+      // undefined — which surfaces far from the cause, as a TypeError deep in
+      // whatever first reads the field.
+      const defaults: Record<string, unknown> = {};
+      for (const [field, spec] of Object.entries(MODEL_DEFAULTS[name] ?? {})) {
+        defaults[field] = spec.kind === "now" ? now() : spec.value;
+      }
+      // Optional columns become explicit nulls, so `x === null` behaves the
+      // same way it does against a real database.
+      for (const field of MODEL_NULLABLE[name] ?? []) defaults[field] = null;
+
       const doc: Doc = {
         id: (scalars.id as string) ?? randomUUID(),
-        createdAt: now(),
+        ...defaults,
+        createdAt: (defaults.createdAt as string) ?? now(),
         updatedAt: now(),
         ...scalars,
       } as Doc;
