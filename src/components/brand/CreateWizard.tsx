@@ -103,7 +103,7 @@ export function CreateWizard({ data }: { data: WizardData }) {
           city: city.trim() || undefined,
           notes: notes.trim() || undefined,
         },
-        count: 7,
+        count: 6,
       });
 
       router.push(res.redirect);

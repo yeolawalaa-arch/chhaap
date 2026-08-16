@@ -81,7 +81,16 @@ export interface AiProvider {
   /** False for the heuristic engine — used by the UI to label output honestly. */
   readonly isModelBacked: boolean;
 
-  generateDirections(brief: BrandBrief, count: number): Promise<AiResult<BrandDirectionCandidate[]>>;
+  /**
+   * `salt` re-rolls the generation. Without it the engine is deterministic —
+   * correct for stability, but it made "show me different ones" return the
+   * identical set every time.
+   */
+  generateDirections(
+    brief: BrandBrief,
+    count: number,
+    salt?: string,
+  ): Promise<AiResult<BrandDirectionCandidate[]>>;
   generateNames(input: GenerateNamesInput): Promise<AiResult<NameSuggestion[]>>;
   generateTaglines(input: GenerateTaglinesInput): Promise<AiResult<string[]>>;
   refineVoice(input: RefineVoiceInput): Promise<AiResult<BrandStrategy["voice"]>>;

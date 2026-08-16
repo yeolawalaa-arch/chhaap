@@ -40,7 +40,10 @@ export const POST = handleRoute(async (req: Request, ctx: Ctx) => {
 
   const directions = await recordGeneration(
     { userId: user.id, brandId: id, kind: "directions", input: brand.brief },
-    () => aiProvider().generateDirections(brand.brief, count),
+    // A fresh salt each time. The generated directions are persisted, so a
+    // refresh still shows the same set — stability comes from the rows, not
+    // from the engine being deterministic across calls.
+    () => aiProvider().generateDirections(brand.brief, count, `re-${Date.now()}`),
   );
 
   await db.$transaction([

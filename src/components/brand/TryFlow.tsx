@@ -84,6 +84,7 @@ export function TryFlow({ data }: { data: TryData }) {
   const [colorMood, setColorMood] = useState<ColorMood>("auto");
   const [language, setLanguage] = useState<LanguageCode>("en");
   const [localName, setLocalName] = useState("");
+  const [reroll, setReroll] = useState(0);
 
   const selectedLanguage = data.languages.find((l) => l.code === language);
   const needsLocalName = selectedLanguage && selectedLanguage.script !== "latin";
@@ -95,11 +96,12 @@ export function TryFlow({ data }: { data: TryData }) {
     );
   }
 
-  async function generate() {
+  async function generate(salt?: string) {
     setBusy(true);
     setFields({});
     try {
       const res = await api.post<{ directions: GuestDirection[] }>("/api/try/generate", {
+        salt,
         businessName: businessName.trim(),
         descriptor: descriptor.trim() || undefined,
         industry,
@@ -380,6 +382,21 @@ export function TryFlow({ data }: { data: TryData }) {
           colour logic. Pick one to see the whole brand.
         </p>
 
+        <Button
+          variant="outline"
+          className="mt-5"
+          loading={busy}
+          onClick={() => {
+            // The salt is passed directly rather than read from state, which
+            // would still hold the previous value on this render.
+            const next = reroll + 1;
+            setReroll(next);
+            void generate(`r${next}`);
+          }}
+        >
+          Show me different ones
+        </Button>
+
         <div className="mt-8 grid sm:grid-cols-2 gap-5">
           {directions.map((direction) => (
             <Card key={direction.id} interactive className="overflow-hidden">
@@ -570,7 +587,7 @@ export function TryFlow({ data }: { data: TryData }) {
           </Field>
         )}
 
-        <Button size="lg" full variant="secondary" onClick={generate} loading={busy} disabled={!ready}>
+        <Button size="lg" full variant="secondary" onClick={() => generate()} loading={busy} disabled={!ready}>
           {busy ? "Building four brand systems…" : "Generate my brand"}
         </Button>
 

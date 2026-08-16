@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { handleRoute } from "@/lib/http/errors";
 import { briefSchema } from "@/lib/http/schemas";
+import { z } from "zod";
 import { generateDirections } from "@/lib/brand/engine";
 import { buildLogoDocument, renderLogo, VARIATION_HINTS, VARIATION_LABELS } from "@/lib/render/logo";
 import { renderAssetByKind } from "@/lib/render/assets/templates";
@@ -37,8 +38,13 @@ export const POST = handleRoute(async (req: Request) => {
   // when the database is unavailable.
   await enforce(RULES.aiGenerate, `guest:${clientIp(req)}`);
 
-  const brief = briefSchema.parse(await req.json()) as BrandBrief;
-  const directions = generateDirections({ brief, count: 7 });
+  // The client sends a fresh salt when the visitor asks for different options.
+  // Guest results are not persisted, so the salt is the only thing that can
+  // make a re-roll differ.
+  const body = briefSchema.extend({ salt: z.string().max(40).optional() }).parse(await req.json());
+  const { salt, ...briefFields } = body;
+  const brief = briefFields as BrandBrief;
+  const directions = generateDirections({ brief, count: 6, salt: salt ?? "" });
 
   return NextResponse.json({
     directions: directions.map((direction) => {

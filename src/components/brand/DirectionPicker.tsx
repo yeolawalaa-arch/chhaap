@@ -65,7 +65,7 @@ export function DirectionPicker({
   async function regenerate() {
     setRegenerating(true);
     try {
-      await api.post(`/api/brands/${brandId}/directions`, { count: 7 });
+      await api.post(`/api/brands/${brandId}/directions`, { count: 6 });
       toast.success("Fresh directions generated.");
       setSelected(null);
       router.refresh();

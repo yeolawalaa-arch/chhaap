@@ -152,9 +152,9 @@ export class AnthropicProvider implements AiProvider {
    * only the strategy prose so the two can never disagree about, say, which
    * colour is primary.
    */
-  async generateDirections(brief: BrandBrief, count: number) {
+  async generateDirections(brief: BrandBrief, count: number, salt = "") {
     const started = Date.now();
-    const directions = generateDirections({ brief, count });
+    const directions = generateDirections({ brief, count, salt });
 
     try {
       const { text, inputTokens, outputTokens } = await this.complete(

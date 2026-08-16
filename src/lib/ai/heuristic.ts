@@ -154,9 +154,9 @@ export class HeuristicProvider implements AiProvider {
   readonly model = undefined;
   readonly isModelBacked = false;
 
-  async generateDirections(brief: BrandBrief, count: number) {
+  async generateDirections(brief: BrandBrief, count: number, salt = "") {
     const started = Date.now();
-    const data = generateDirections({ brief, count });
+    const data = generateDirections({ brief, count, salt });
     return this.wrap(data, started);
   }
 

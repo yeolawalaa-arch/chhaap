@@ -337,6 +337,114 @@ export const GLYPHS: Glyph[] = [
     strokes: ["M50 18 C68 34 68 62 50 82 C32 62 32 34 50 18 Z"],
   }, ["beauty", "organic", "soft"]),
 
+
+  // --- fitness, health & personal care -------------------------------------
+  G("dumbbell", "Dumbbell", {
+    strokes: ["M30 50 H70", "M22 38 V62 M32 34 V66", "M78 38 V62 M68 34 V66"],
+  }, ["gym", "fitness", "sports"]),
+
+  G("capsule", "Capsule", {
+    strokes: ["M34 66 A18 18 0 0 1 34 34 L66 34 A18 18 0 0 1 66 66 Z", "M50 34 L50 66"],
+  }, ["pharmacy", "medical", "health"]),
+
+  G("tooth", "Tooth", {
+    strokes: ["M30 26 C22 26 20 38 24 52 C27 64 28 80 36 80 C42 80 42 64 50 64 C58 64 58 80 64 80 C72 80 73 64 76 52 C80 38 78 26 70 26 C62 26 58 32 50 32 C42 32 38 26 30 26 Z"],
+  }, ["dental", "clinic", "health"]),
+
+  G("glasses", "Eyewear", {
+    strokes: ["M20 50 m0 0 a14 14 0 1 0 28 0 a14 14 0 1 0 -28 0", "M52 50 m0 0 a14 14 0 1 0 28 0 a14 14 0 1 0 -28 0", "M48 48 H52", "M6 44 L20 48", "M94 44 L80 48"],
+  }, ["optical", "eyewear", "retail"]),
+
+  G("paw", "Paw", {
+    dots: [[32, 38, 9], [50, 30, 9], [68, 38, 9]],
+    strokes: ["M50 78 C38 78 30 70 30 60 C30 52 38 48 50 48 C62 48 70 52 70 60 C70 70 62 78 50 78 Z"],
+  }, ["pet", "vet", "animal"]),
+
+  // --- education & services ------------------------------------------------
+  G("mortarboard", "Graduation", {
+    strokes: ["M10 40 L50 24 L90 40 L50 56 Z", "M26 47 V66 C26 74 74 74 74 66 V47", "M86 42 V62"],
+  }, ["education", "coaching", "tuition"]),
+
+  G("mic", "Microphone", {
+    strokes: ["M50 20 a10 10 0 0 1 10 10 v18 a10 10 0 0 1 -20 0 V30 a10 10 0 0 1 10 -10 Z", "M30 46 a20 20 0 0 0 40 0", "M50 66 V80", "M38 80 H62"],
+  }, ["music", "podcast", "creator"]),
+
+  G("suitcase", "Travel", {
+    strokes: ["M18 38 H82 V78 H18 Z", "M38 38 V28 H62 V38", "M18 56 H82"],
+  }, ["travel", "tourism", "consulting"]),
+
+  G("calendar-star", "Event", {
+    strokes: ["M18 30 H82 V80 H18 Z", "M18 44 H82", "M34 22 V36 M66 22 V36"],
+    fills: ["M50 52 L54 62 L64 62 L56 68 L59 78 L50 72 L41 78 L44 68 L36 62 L46 62 Z"],
+  }, ["events", "wedding", "planner"]),
+
+  // --- trade, transport & retail -------------------------------------------
+  G("car", "Car", {
+    strokes: ["M16 62 V50 L26 34 H68 L82 50 V62", "M16 56 H84"],
+    dots: [[32, 66, 8], [70, 66, 8]],
+  }, ["automotive", "garage", "cab"]),
+
+  G("mobile", "Mobile", {
+    strokes: ["M32 16 H68 A4 4 0 0 1 72 20 V80 A4 4 0 0 1 68 84 H32 A4 4 0 0 1 28 80 V20 A4 4 0 0 1 32 16 Z", "M42 24 H58"],
+    dots: [[50, 76, 3]],
+  }, ["mobile", "electronics", "repair"]),
+
+  G("plug", "Electrical", {
+    strokes: ["M36 20 V40 M64 20 V40", "M26 40 H74 V54 A24 24 0 0 1 26 54 Z", "M50 78 V80"],
+    accents: ["M50 78 V66"],
+  }, ["electrical", "hardware", "service"]),
+
+  G("sofa", "Furniture", {
+    strokes: ["M20 54 V44 A8 8 0 0 1 36 44 V54", "M64 54 A8 8 0 0 1 80 44 V54", "M14 54 H86 V72 H14 Z", "M22 72 V80 M78 72 V80"],
+  }, ["furniture", "interiors", "home"]),
+
+  G("hammer", "Construction", {
+    strokes: ["M30 22 L58 34 L50 50 L22 38 Z", "M48 46 L74 78"],
+  }, ["construction", "builder", "hardware"]),
+
+  G("printer", "Print", {
+    strokes: ["M30 36 V20 H70 V36", "M18 36 H82 V64 H18 Z", "M30 56 H70 V84 H30 Z"],
+    dots: [[72, 45, 3]],
+  }, ["printing", "stationery", "signage"]),
+
+  G("cake", "Cake", {
+    strokes: ["M24 56 H76 V78 H24 Z", "M24 66 H76", "M50 34 V46"],
+    dots: [[50, 30, 4]],
+  }, ["bakery", "sweets", "catering"]),
+
+  G("milk-can", "Dairy", {
+    strokes: ["M38 22 H62 V32 L72 44 V78 H28 V44 L38 32 Z", "M28 56 H72"],
+  }, ["dairy", "milk", "agri"]),
+
+  G("chart", "Growth chart", {
+    strokes: ["M18 80 V26", "M18 80 H84", "M30 66 L46 50 L60 60 L80 36"],
+    dots: [[80, 36, 4]],
+  }, ["finance", "accounting", "consulting"]),
+
+  G("briefcase", "Professional", {
+    strokes: ["M16 38 H84 V78 H16 Z", "M38 38 V28 H62 V38", "M16 56 H84"],
+  }, ["legal", "corporate", "b2b"]),
+
+  G("globe", "Global", {
+    strokes: ["M50 50 m-30 0 a30 30 0 1 0 60 0 a30 30 0 1 0 -60 0", "M20 50 H80", "M50 20 C62 32 62 68 50 80 C38 68 38 32 50 20 Z"],
+  }, ["export", "trading", "logistics"]),
+
+  G("mortar", "Mortar & pestle", {
+    strokes: ["M26 52 H74 C74 68 64 78 50 78 C36 78 26 68 26 52 Z", "M58 24 L40 48"],
+  }, ["ayurveda", "spices", "pharmacy"]),
+
+  G("needle", "Needle & thread", {
+    strokes: ["M70 24 L34 72", "M64 20 a6 6 0 0 1 8 8", "M34 72 C26 74 24 80 30 82 C36 84 40 78 34 72 Z"],
+  }, ["tailor", "boutique", "embroidery"]),
+
+  G("solar", "Solar", {
+    strokes: ["M22 62 L34 34 H66 L78 62 Z", "M22 62 H78", "M38 34 L32 62 M62 34 L68 62", "M50 20 V10"],
+    accents: ["M28 22 L34 30 M72 22 L66 30"],
+  }, ["solar", "energy", "green"]),
+
+  G("hanger-rack", "Boutique rail", {
+    strokes: ["M14 30 H86", "M30 30 V46 M50 30 V46 M70 30 V46", "M24 46 H36 M44 46 H56 M64 46 H76"],
+  }, ["boutique", "clothing", "retail"]),
   G("arrow-up", "Growth arrow", {
     strokes: ["M50 82 V24", "M30 44 L50 24 L70 44"],
   }, ["finance", "growth", "startup"]),

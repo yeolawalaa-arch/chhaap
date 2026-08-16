@@ -308,10 +308,17 @@ export function generateDirections({
 
   // Rank archetypes by fit, then take the best `count` — but always keep at
   // least one that scored low, so the user sees a genuine alternative rather
-  // than four variations on the same idea.
+  // than several variations on the same idea.
+  //
+  // The salt adds a small jitter to the ranking. Without it a re-roll returns
+  // the same archetypes in the same order and only their internals differ,
+  // which does not read as "different" to anyone looking at the labels. The
+  // jitter is deliberately smaller than a real fit difference, so a badly
+  // suited archetype still cannot outrank a well suited one.
+  const jitter = new Rng(hashString(`${seed}|order`));
   const ranked = ARCHETYPES.map((a) => ({
     archetype: a,
-    fit: a.fit(industry, baseProfile),
+    fit: a.fit(industry, baseProfile) + (salt ? jitter.float(-0.18, 0.18) : 0),
   })).sort((x, y) => y.fit - x.fit);
 
   const chosen = ranked.slice(0, Math.max(1, count - 1)).map((r) => r.archetype);
