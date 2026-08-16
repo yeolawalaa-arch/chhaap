@@ -158,7 +158,34 @@ export interface Entitlement {
   currentPeriodEnd: Date | null;
 }
 
+/** Every capability on, nothing metered. */
+export const UNLIMITED_LIMITS: PlanLimits = {
+  ...PLAN_SEED[2]!.limits,
+  aiGenerationsPerMonth: -1,
+  maxBrands: 10_000,
+  maxTeamMembers: 100,
+  maxExportPx: 20_000,
+};
+
 export async function entitlementFor(userId: string): Promise<Entitlement> {
+  // Owners and administrators are not metered on their own platform. Doing this
+  // by role rather than by handing out a subscription row means it survives a
+  // reseed, applies to any future admin, and never shows up in revenue figures
+  // as a phantom paying customer.
+  const user = await db.user
+    .findUnique({ where: { id: userId } })
+    .catch(() => null);
+
+  if (user?.role === "admin") {
+    return {
+      planKey: "business",
+      planName: "Owner",
+      limits: UNLIMITED_LIMITS,
+      status: "active",
+      currentPeriodEnd: null,
+    };
+  }
+
   const subscription = await db.subscription.findUnique({
     where: { userId },
     include: { plan: true },
