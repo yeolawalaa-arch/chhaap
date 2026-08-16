@@ -103,10 +103,35 @@ function load(): Env {
 
 let cached: Env | null = null;
 
+/**
+ * Derives the public origin when APP_URL was not set explicitly.
+ *
+ * This matters more than it looks: APP_URL is the base for password-reset
+ * links, the Google OAuth redirect URI and every canonical/OG URL. Left at its
+ * localhost default on a real deployment, reset emails point at the user's own
+ * machine and OAuth breaks — both failing silently, in email, where nobody
+ * notices until a customer complains.
+ */
+function resolveAppUrl(parsed: Env): string {
+  const explicit = process.env.APP_URL;
+  if (explicit) return explicit.replace(/\/$/, "");
+
+  // Vercel exposes the stable production domain, and the per-deployment host
+  // for previews. Prefer the stable one so reset links survive a redeploy.
+  const vercelHost =
+    process.env.VERCEL_PROJECT_PRODUCTION_URL ?? process.env.VERCEL_URL;
+  if (vercelHost) return `https://${vercelHost.replace(/^https?:\/\//, "").replace(/\/$/, "")}`;
+
+  return parsed.APP_URL;
+}
+
 /** Validated, typed environment. Throws once at first access if misconfigured. */
 export const env: Env = new Proxy({} as Env, {
   get(_t, prop: string) {
-    cached ??= load();
+    if (!cached) {
+      const parsed = load();
+      cached = { ...parsed, APP_URL: resolveAppUrl(parsed) };
+    }
     return cached[prop as keyof Env];
   },
 });
