@@ -79,15 +79,21 @@ export function OptionsPanel({
     }
   }
 
+  const total = data ? data.marks.length + data.palettes.length + data.types.length : null;
+
   if (!open) {
     return (
       <Card className="p-5">
-        <h3 className="text-[14px] font-semibold text-ink">More options</h3>
+        <div className="flex items-center justify-between">
+          <h3 className="text-[14px] font-semibold text-ink">More options</h3>
+          <Badge tone="brand">{total ?? "100+"}</Badge>
+        </div>
         <p className="mt-1.5 text-[12.5px] text-muted leading-relaxed">
-          Swap the symbol, colours or typefaces without regenerating the rest of your brand.
+          Every symbol in your category, in every frame and weight — plus every colour system and
+          typeface pairing. Swap any one without regenerating the rest.
         </p>
         <Button size="sm" full variant="outline" className="mt-3" onClick={() => setOpen(true)}>
-          Show options
+          Browse {total ?? "100+"} options
         </Button>
       </Card>
     );
@@ -98,7 +104,10 @@ export function OptionsPanel({
   return (
     <Card className="p-5">
       <div className="flex items-center justify-between mb-3">
-        <h3 className="text-[14px] font-semibold text-ink">More options</h3>
+        <div className="flex items-center gap-2">
+          <h3 className="text-[14px] font-semibold text-ink">More options</h3>
+          {total !== null && <Badge tone="brand">{total}</Badge>}
+        </div>
         <button
           onClick={() => setOpen(false)}
           className="text-[12px] text-muted hover:text-ink transition-colors"
