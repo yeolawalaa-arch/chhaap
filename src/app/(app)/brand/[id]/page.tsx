@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import { Badge, Button, Card, SvgFrame } from "@/components/ui";
 import { QualityPanel } from "@/components/brand/QualityPanel";
+import { OptionsPanel } from "@/components/brand/OptionsPanel";
 import { ExportBar } from "@/components/brand/ExportBar";
 import { requireUser } from "@/lib/auth/session";
 import { loadBrand, loadLogos } from "@/lib/brand/service";
@@ -144,6 +145,8 @@ export default async function BrandPage({ params }: { params: Promise<{ id: stri
           />
 
           {brand.quality && <QualityPanel report={brand.quality} />}
+
+          <OptionsPanel brandId={id} currentScore={brand.qualityScore} />
 
           <Card className="p-5">
             <h3 className="text-[14px] font-semibold text-ink mb-3">Palette</h3>

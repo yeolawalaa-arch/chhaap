@@ -373,7 +373,7 @@ export function TryFlow({ data }: { data: TryData }) {
         </button>
 
         <h1 className="mt-3 text-[30px] sm:text-[38px] font-semibold tracking-[-0.025em] leading-[1.1]">
-          Four directions for {businessName}
+          Brand directions for {businessName}
         </h1>
         <p className="mt-3 text-[15px] text-muted leading-relaxed max-w-2xl">
           Each is a complete system — different mark, different type classification, different

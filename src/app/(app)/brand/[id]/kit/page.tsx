@@ -4,6 +4,7 @@ import { notFound, redirect } from "next/navigation";
 import { Badge, Button, Card, SvgFrame } from "@/components/ui";
 import { ExportBar } from "@/components/brand/ExportBar";
 import { QualityPanel } from "@/components/brand/QualityPanel";
+import { OptionsPanel } from "@/components/brand/OptionsPanel";
 import { PublishToggle } from "@/components/brand/PublishToggle";
 import { requireUser } from "@/lib/auth/session";
 import { loadBrand, loadLogos } from "@/lib/brand/service";
@@ -329,6 +330,8 @@ export default async function BrandKitPage({ params }: { params: Promise<{ id: s
             variations={LOGO_VARIATIONS.map((v) => ({ value: v, label: VARIATION_LABELS[v] }))}
           />
           {brand.quality && <QualityPanel report={brand.quality} />}
+
+          <OptionsPanel brandId={id} currentScore={brand.qualityScore} />
         </div>
       </div>
     </div>

@@ -65,7 +65,7 @@ export function DirectionPicker({
   async function regenerate() {
     setRegenerating(true);
     try {
-      await api.post(`/api/brands/${brandId}/directions`, { count: 4 });
+      await api.post(`/api/brands/${brandId}/directions`, { count: 6 });
       toast.success("Fresh directions generated.");
       setSelected(null);
       router.refresh();
@@ -81,7 +81,7 @@ export function DirectionPicker({
     <div className="max-w-[1200px] mx-auto px-5 py-10">
       <div className="max-w-2xl">
         <h1 className="text-[30px] sm:text-[38px] font-semibold tracking-[-0.025em] leading-[1.1]">
-          Four directions for {brandName}
+          {directions.length} directions for {brandName}
         </h1>
         <p className="mt-3 text-[15px] text-muted leading-relaxed">
           Each is a complete system, not a colour swap — different mark, different type

@@ -1,0 +1,197 @@
+"use client";
+
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { Badge, Button, Card, Skeleton, SvgFrame, Tabs, cx, useToast } from "@/components/ui";
+import { ApiError, api } from "@/lib/client/api";
+
+/**
+ * Swap any single part of the brand without regenerating the rest.
+ *
+ * Picking a direction should settle the system, not every decision inside it.
+ * Someone who likes the direction but wants a different symbol previously had
+ * to regenerate and lose everything they liked.
+ *
+ * Each option carries its own readiness score, so an alternative that would
+ * fail the contrast or small-size checks is visibly worse rather than quietly
+ * presented as an equal choice.
+ */
+
+interface Option {
+  id: string;
+  label: string;
+  score: number;
+  preview: string;
+  swatches?: string[];
+}
+
+interface Alternatives {
+  marks: Option[];
+  palettes: Option[];
+  types: Option[];
+}
+
+type Tab = "marks" | "palettes" | "types";
+
+export function OptionsPanel({
+  brandId,
+  currentScore,
+}: {
+  brandId: string;
+  currentScore: number;
+}) {
+  const router = useRouter();
+  const toast = useToast();
+
+  const [open, setOpen] = useState(false);
+  const [tab, setTab] = useState<Tab>("marks");
+  const [data, setData] = useState<Alternatives | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [applying, setApplying] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!open || data || loading) return;
+    setLoading(true);
+    api
+      .get<Alternatives>(`/api/brands/${brandId}/alternatives`)
+      .then(setData)
+      .catch((err) => toast.error(err instanceof ApiError ? err.message : "Could not load options."))
+      .finally(() => setLoading(false));
+  }, [open, data, loading, brandId, toast]);
+
+  async function apply(kind: Tab, id: string) {
+    setApplying(id);
+    try {
+      const key = kind === "marks" ? "markId" : kind === "palettes" ? "paletteId" : "typeId";
+      const res = await api.post<{ qualityScore: number }>(
+        `/api/brands/${brandId}/alternatives`,
+        { [key]: id },
+      );
+      toast.success("Applied.", `Every asset updated · readiness ${res.qualityScore}/100`);
+      // Force a fresh fetch: the previous options were scored against the old
+      // spec and are stale the moment one is applied.
+      setData(null);
+      router.refresh();
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : "Could not apply that option.");
+    } finally {
+      setApplying(null);
+    }
+  }
+
+  if (!open) {
+    return (
+      <Card className="p-5">
+        <h3 className="text-[14px] font-semibold text-ink">More options</h3>
+        <p className="mt-1.5 text-[12.5px] text-muted leading-relaxed">
+          Swap the symbol, colours or typefaces without regenerating the rest of your brand.
+        </p>
+        <Button size="sm" full variant="outline" className="mt-3" onClick={() => setOpen(true)}>
+          Show options
+        </Button>
+      </Card>
+    );
+  }
+
+  const options = data ? data[tab] : [];
+
+  return (
+    <Card className="p-5">
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="text-[14px] font-semibold text-ink">More options</h3>
+        <button
+          onClick={() => setOpen(false)}
+          className="text-[12px] text-muted hover:text-ink transition-colors"
+        >
+          Hide
+        </button>
+      </div>
+
+      <Tabs
+        value={tab}
+        onChange={setTab}
+        tabs={[
+          { value: "marks", label: "Symbol", count: data?.marks.length },
+          { value: "palettes", label: "Colour", count: data?.palettes.length },
+          { value: "types", label: "Type", count: data?.types.length },
+        ]}
+        className="mb-4"
+      />
+
+      {loading || !data ? (
+        <div className="grid grid-cols-2 gap-2.5">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <Skeleton key={i} className="h-24" />
+          ))}
+        </div>
+      ) : (
+        <ul className="grid grid-cols-2 gap-2.5 max-h-[420px] overflow-y-auto -mx-1 px-1">
+          {options.map((option) => {
+            const isCurrent = option.label === "Current";
+            const busy = applying === option.id;
+            const worse = option.score < currentScore - 4;
+
+            return (
+              <li key={option.id}>
+                <button
+                  onClick={() => !isCurrent && apply(tab, option.id)}
+                  disabled={isCurrent || applying !== null}
+                  className={cx(
+                    "w-full text-left rounded-[10px] border p-2 transition-all",
+                    "disabled:cursor-default",
+                    isCurrent
+                      ? "border-ink ring-1 ring-ink bg-paper-alt"
+                      : "border-line hover:border-ink/30 hover:shadow-card active:scale-[0.98]",
+                    busy && "opacity-60",
+                  )}
+                >
+                  <div className="h-16 flex items-center justify-center bg-white rounded-[6px] overflow-hidden">
+                    <SvgFrame svg={option.preview} className="h-full w-full" label={option.label} />
+                  </div>
+
+                  <div className="mt-1.5 flex items-center justify-between gap-1">
+                    <span className="text-[11px] text-ink truncate">{option.label}</span>
+                    {isCurrent ? (
+                      <Badge tone="neutral">now</Badge>
+                    ) : (
+                      <span
+                        className={cx(
+                          "text-[10.5px] tabular-nums shrink-0",
+                          worse ? "text-warn" : "text-faint",
+                        )}
+                        title={
+                          worse
+                            ? `Readiness would drop to ${option.score}/100`
+                            : `Readiness ${option.score}/100`
+                        }
+                      >
+                        {option.score}
+                      </span>
+                    )}
+                  </div>
+
+                  {option.swatches && (
+                    <div className="mt-1 flex gap-1">
+                      {option.swatches.map((hex) => (
+                        <span
+                          key={hex}
+                          className="w-3.5 h-3.5 rounded-[3px] border border-ink/10"
+                          style={{ background: hex }}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+
+      <p className="mt-3 text-[11.5px] text-muted leading-relaxed">
+        The number is what your Brand Readiness would become. Applying an option re-renders every
+        logo variation and asset.
+      </p>
+    </Card>
+  );
+}

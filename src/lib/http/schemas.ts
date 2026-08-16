@@ -94,11 +94,11 @@ export const briefSchema = z.object({
 
 export const createBrandSchema = z.object({
   brief: briefSchema,
-  count: z.coerce.number().int().min(2).max(6).default(4),
+  count: z.coerce.number().int().min(2).max(6).default(6),
 });
 
 export const regenerateSchema = z.object({
-  count: z.coerce.number().int().min(2).max(6).default(4),
+  count: z.coerce.number().int().min(2).max(6).default(6),
 });
 
 export const selectDirectionSchema = z.object({
