@@ -4,24 +4,52 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "prisma generate && next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "typecheck": "tsc --noEmit",
+    "//": "--- production target: PostgreSQL, prisma/schema.prisma ---",
+    "db:generate": "prisma generate",
+    "db:push": "prisma db push",
+    "db:migrate": "prisma migrate deploy",
+    "//local": "--- local dev: SQLite mirror, zero infrastructure ---",
+    "db:sqlite": "tsx scripts/use-sqlite.ts",
+    "db:generate:local": "npm run db:sqlite && prisma generate --schema=prisma/schema.sqlite.prisma",
+    "db:push:local": "prisma db push --schema=prisma/schema.sqlite.prisma --skip-generate",
+    "db:studio:local": "prisma studio --schema=prisma/schema.sqlite.prisma",
+    "db:seed": "tsx prisma/seed.ts",
+    "fonts:fetch": "tsx scripts/fetch-fonts.ts",
+    "setup": "npm run db:generate:local && npm run db:push:local && npm run fonts:fetch && npm run db:seed",
+    "vercel-build": "prisma generate && prisma migrate deploy && next build",
+    "db:seed:prod": "tsx prisma/seed.ts"
+  },
+  "prisma": {
+    "seed": "tsx prisma/seed.ts"
   },
   "dependencies": {
+    "@prisma/client": "^6.19.3",
+    "jose": "^6.2.9",
+    "jszip": "^3.10.1",
+    "nanoid": "^5.1.16",
+    "next": "15.5.4",
+    "pdfkit": "^0.19.1",
+    "prisma": "^6.19.3",
     "react": "19.1.0",
     "react-dom": "19.1.0",
-    "next": "15.5.4"
+    "svg-to-pdfkit": "^0.1.8",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
-    "typescript": "^5",
+    "@eslint/eslintrc": "^3",
+    "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
+    "@types/pdfkit": "^0.17.6",
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "@tailwindcss/postcss": "^4",
-    "tailwindcss": "^4",
     "eslint": "^9",
     "eslint-config-next": "15.5.4",
-    "@eslint/eslintrc": "^3"
+    "tailwindcss": "^4",
+    "tsx": "^4.23.12",
+    "typescript": "^5"
   }
 }

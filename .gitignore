@@ -39,3 +39,16 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Fonts are fetched by `npm run fonts:fetch`, not committed (11 MB of binaries).
+# The Vercel build runs the fetch, so production has them.
+/public/fonts/*.ttf
+/public/fonts/fonts.css
+
+# Local preview scratch
+/public/_preview
+
+# Generated SQLite mirror + local db
+/prisma/schema.sqlite.prisma
+/prisma/dev.db
+/prisma/dev.db-journal
