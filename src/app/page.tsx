@@ -52,7 +52,7 @@ export default async function LandingPage() {
               </p>
 
               <div className="mt-8 flex flex-col sm:flex-row gap-3">
-                <Link href={session ? "/create" : "/signup"}>
+                <Link href={session ? "/create" : "/try"}>
                   <Button size="lg" variant="secondary" full className="sm:w-auto">
                     Create My Brand
                   </Button>
@@ -65,7 +65,7 @@ export default async function LandingPage() {
               </div>
 
               <p className="mt-5 text-[13px] text-muted">
-                Free to start · No card needed · 11 languages
+                No account needed · Free · 11 languages
               </p>
             </div>
 
@@ -281,7 +281,7 @@ export default async function LandingPage() {
                 separation, stroke weight at favicon size, tracking limits for your script. Each
                 failure comes with the specific fix.
               </p>
-              <Link href="/signup" className="inline-block mt-7">
+              <Link href="/try" className="inline-block mt-7">
                 <Button size="lg" variant="secondary">
                   Check my brand
                 </Button>
@@ -336,7 +336,7 @@ export default async function LandingPage() {
               In the time it takes to finish a cup of chai.
             </p>
             <div className="mt-9 flex flex-col sm:flex-row gap-3 justify-center">
-              <Link href={session ? "/create" : "/signup"}>
+              <Link href={session ? "/create" : "/try"}>
                 <Button size="lg" variant="secondary" full className="sm:w-auto">
                   Create My Brand
                 </Button>

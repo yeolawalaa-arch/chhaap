@@ -8,6 +8,7 @@ import type { ActiveSession } from "@/lib/auth/session";
 // Only routes that exist. A nav entry pointing at an unbuilt page is a bug,
 // not a roadmap.
 const PRODUCT_LINKS = [
+  { href: "/try", label: "Try it free" },
   { href: "/pricing", label: "Pricing" },
   { href: "/showcase", label: "Showcase" },
 ];
@@ -42,7 +43,7 @@ export function SiteHeader({ session }: { session: ActiveSession | null }) {
                   Sign in
                 </Button>
               </Link>
-              <Link href="/signup">
+              <Link href="/try">
                 <Button size="sm" variant="secondary">
                   Create My Brand
                 </Button>
@@ -59,6 +60,7 @@ const FOOTER_GROUPS: { title: string; links: { href: string; label: string }[] }
   {
     title: "Product",
     links: [
+      { href: "/try", label: "Try it free" },
       { href: "/create", label: "Create a brand" },
       { href: "/pricing", label: "Pricing" },
       { href: "/showcase", label: "Showcase" },

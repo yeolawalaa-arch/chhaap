@@ -103,7 +103,7 @@ export default async function ShowcasePage() {
           <p className="mt-2 text-[14.5px] text-muted max-w-md mx-auto leading-relaxed">
             Generate your brand, then publish it to a public page you can share with customers.
           </p>
-          <Link href="/signup" className="inline-block mt-6">
+          <Link href="/try" className="inline-block mt-6">
             <Button size="lg" variant="secondary">Create My Brand</Button>
           </Link>
         </Card>
