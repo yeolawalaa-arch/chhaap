@@ -2,35 +2,43 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { handleRoute } from "@/lib/http/errors";
 import { briefSchema } from "@/lib/http/schemas";
-import { generateDirections } from "@/lib/brand/engine";
+import { guestSpecSchema } from "@/lib/http/guest-spec-schema";
 import { allAlternatives } from "@/lib/brand/alternatives";
 import { buildLogoDocument, renderLogo } from "@/lib/render/logo";
 import { RULES, clientIp, enforce } from "@/lib/security/rate-limit";
 import type { BrandBrief, BrandIdentitySpec } from "@/types/brand";
 
-const bodySchema = z.object({
-  brief: briefSchema,
-  directionId: z.string().max(60),
-});
-
 /**
  * Guest alternatives.
  *
- * The spec is recomputed from the brief rather than accepted from the client,
- * so an anonymous caller cannot post an arbitrary spec and have the server
- * render from it.
+ * The spec travels in the request body rather than being re-derived from
+ * `(brief, directionId)` on the server. An earlier version tried to
+ * regenerate it that way, but `generateDirections` is only reproducible when
+ * called with the exact same `count` and `salt` the client used — and this
+ * route had no way to know whether the guest had clicked "show me different
+ * ones" first. A mismatched salt silently produced a different direction than
+ * the one on screen, with the `directions[0]` fallback masking the failure
+ * rather than surfacing it. Accepting the already-computed spec directly,
+ * the same way /api/try/export already does, removes the mismatch entirely:
+ * there is nothing left to regenerate.
  */
+const bodySchema = z.object({
+  spec: guestSpecSchema,
+  brief: briefSchema,
+});
+
 export const POST = handleRoute(async (req: Request) => {
   await enforce(RULES.aiGenerate, `guest-alt:${clientIp(req)}`);
 
-  const { brief, directionId } = bodySchema.parse(await req.json());
-  const directions = generateDirections({ brief: brief as BrandBrief, count: 7 });
-  const direction = directions.find((d) => d.id === directionId) ?? directions[0]!;
-  const spec = direction.spec;
+  const { spec, brief } = bodySchema.parse(await req.json());
+  const typedSpec = spec as unknown as BrandIdentitySpec;
 
-  const alts = allAlternatives(spec, brief as BrandBrief);
+  const alts = allAlternatives(typedSpec, brief as BrandBrief);
   const preview = (patch: Partial<BrandIdentitySpec>) =>
-    renderLogo({ doc: buildLogoDocument({ ...spec, ...patch }, "primary"), spec: { ...spec, ...patch } });
+    renderLogo({
+      doc: buildLogoDocument({ ...typedSpec, ...patch }, "primary"),
+      spec: { ...typedSpec, ...patch },
+    });
 
   return NextResponse.json({
     marks: alts.marks.map((m) => ({ ...m, preview: preview({ mark: m.mark }) })),

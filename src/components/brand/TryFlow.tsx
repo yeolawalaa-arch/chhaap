@@ -16,12 +16,14 @@ import {
   useToast,
 } from "@/components/ui";
 import { QualityPanel } from "@/components/brand/QualityPanel";
+import { GuestOptionsPanel } from "@/components/brand/GuestOptionsPanel";
 import { ApiError, api } from "@/lib/client/api";
 import { saveBlob, svgToBlob } from "@/lib/client/rasterize";
 import type { IndustryGroup, IndustryProfile } from "@/lib/brand/industries";
 import type { LanguageDef } from "@/lib/brand/languages";
 import type { TraitDef } from "@/lib/brand/personality";
 import type {
+  BrandBrief,
   BrandIdentitySpec,
   BrandStrategy,
   ColorMood,
@@ -178,6 +180,29 @@ export function TryFlow({ data }: { data: TryData }) {
     } finally {
       setDownloading(null);
     }
+  }
+
+  /** The same brief the current directions were generated from, for /api/try/alternatives. */
+  function currentBrief(): BrandBrief {
+    return {
+      businessName: businessName.trim(),
+      descriptor: descriptor.trim() || undefined,
+      industry,
+      audience: audience.trim(),
+      personality,
+      colorMood,
+      language,
+      localName: needsLocalName && localName.trim() ? localName.trim() : undefined,
+      city: city.trim() || undefined,
+    } as BrandBrief;
+  }
+
+  async function applyPatch(patch: Partial<Pick<BrandIdentitySpec, "mark" | "palette" | "typography">>) {
+    if (!chosen) return;
+    const res = await api.post<
+      Pick<GuestDirection, "spec" | "quality" | "preview" | "variations" | "assets" | "patterns" | "contrast">
+    >("/api/try/apply", { spec: chosen.spec, patch });
+    setChosen((prev) => (prev ? { ...prev, ...res } : prev));
   }
 
   // =========================================================================
@@ -345,6 +370,13 @@ export function TryFlow({ data }: { data: TryData }) {
                   : " Accounts are not available on this deployment yet."}
               </p>
             </Card>
+
+            <GuestOptionsPanel
+              spec={chosen.spec}
+              brief={currentBrief()}
+              currentScore={chosen.quality.score}
+              onApply={applyPatch}
+            />
 
             <QualityPanel report={chosen.quality} />
 
