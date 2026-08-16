@@ -29,9 +29,22 @@ function build(): Db {
   const databaseUrl = process.env.DATABASE_URL;
   const blobToken = process.env.BLOB_READ_WRITE_TOKEN;
 
-  if (databaseUrl) {
+  // Only a genuine PostgreSQL URL selects Prisma. A stray value — a `file:`
+  // SQLite path from a local .env that rode along in the upload, or a
+  // half-filled placeholder — must not win over a working Blob store, because
+  // the production schema is Postgres and Prisma would fail on every query
+  // while reporting it as "no database connected".
+  const isPostgres = !!databaseUrl && /^postgres(ql)?:\/\//.test(databaseUrl);
+
+  if (isPostgres) {
     console.log("[db] backend: postgresql");
     return new PrismaClient({ log: process.env.NODE_ENV === "development" ? ["warn", "error"] : ["error"] });
+  }
+
+  if (databaseUrl && !isPostgres) {
+    console.warn(
+      `[db] ignoring DATABASE_URL: not a postgres:// URL (starts with "${databaseUrl.slice(0, 12)}…")`,
+    );
   }
 
   if (blobToken) {

@@ -1,0 +1,13 @@
+# Local environment files must never ride along in a CLI upload. Next loads
+# .env in production too, so a stray local DATABASE_URL would override the
+# project's real configuration.
+.env
+.env.*
+!.env.example
+
+# Local database and scratch output
+prisma/dev.db
+prisma/dev.db-journal
+prisma/schema.sqlite.prisma
+public/_preview
+.storage
