@@ -21,6 +21,35 @@ const nextConfig: NextConfig = {
     // on an unused import.
     ignoreDuringBuilds: true,
   },
+
+  async headers() {
+    return [
+      {
+        source: "/:path*",
+        headers: [
+          // The app holds authenticated sessions, so framing it is a
+          // clickjacking route — a hidden iframe over a "Delete brand" button.
+          { key: "X-Frame-Options", value: "DENY" },
+          { key: "Content-Security-Policy", value: "frame-ancestors 'none'" },
+          // Stops browsers from MIME-sniffing an upload into something
+          // executable.
+          { key: "X-Content-Type-Options", value: "nosniff" },
+          // Brand workspace URLs contain ids; don't leak them to third parties.
+          { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+          {
+            key: "Permissions-Policy",
+            value: "camera=(), microphone=(), geolocation=(), payment=()",
+          },
+        ],
+      },
+      {
+        // Fonts are immutable and content-addressed by filename; without this
+        // every page load re-fetches several hundred KB of TTF.
+        source: "/fonts/:file*",
+        headers: [{ key: "Cache-Control", value: "public, max-age=31536000, immutable" }],
+      },
+    ];
+  },
 };
 
 export default nextConfig;

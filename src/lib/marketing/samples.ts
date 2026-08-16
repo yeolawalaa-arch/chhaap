@@ -96,8 +96,21 @@ export interface Sample {
   score: number;
 }
 
+/**
+ * Memoised because the engine is deterministic: the same briefs always produce
+ * the same brands, so regenerating them per request is pure waste. This was
+ * costing ~2.5s on every landing-page render — six briefs × four directions is
+ * twenty-four complete brand systems, plus a full asset render.
+ */
+let cachedSamples: Sample[] | null = null;
+let cachedShowcase: { key: string; value: AssetShowcase } | null = null;
+
 /** One representative sample per brief. Deterministic, so it caches cleanly. */
 export function marketingSamples(): Sample[] {
+  return (cachedSamples ??= buildSamples());
+}
+
+function buildSamples(): Sample[] {
   return SAMPLE_BRIEFS.map((brief) => {
     const direction = generateDirections({ brief, count: 4 })[0]!;
     const spec = direction.spec;
@@ -125,11 +138,24 @@ export function marketingSamples(): Sample[] {
   });
 }
 
-/** A single brand shown across many assets, for the "one system" section. */
-export function assetShowcase(kinds: AssetKind[]): {
+export interface AssetShowcase {
   name: string;
   items: { kind: AssetKind; label: string; svg: string; ratio: number }[];
-} {
+}
+
+/**
+ * A single brand shown across many assets, for the "one system" section.
+ * Cached per requested set — the landing page always asks for the same one.
+ */
+export function assetShowcase(kinds: AssetKind[]): AssetShowcase {
+  const key = kinds.join(",");
+  if (cachedShowcase?.key === key) return cachedShowcase.value;
+  const value = renderShowcase(kinds);
+  cachedShowcase = { key, value };
+  return value;
+}
+
+function renderShowcase(kinds: AssetKind[]): AssetShowcase {
   const brief = SAMPLE_BRIEFS[2]!;
   const spec = generateDirections({ brief, count: 4 })[0]!.spec;
   const resolve = colorResolver(spec, "brand");
