@@ -40,10 +40,9 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# Fonts are fetched by `npm run fonts:fetch`, not committed (11 MB of binaries).
-# The Vercel build runs the fetch, so production has them.
-/public/fonts/*.ttf
-/public/fonts/fonts.css
+# public/fonts/*.ttf IS committed on purpose. The PDF pipeline embeds these
+# exact files, so builds must not depend on Google Fonts being reachable.
+# All are SIL Open Font Licence, which permits redistribution.
 
 # Local preview scratch
 /public/_preview
