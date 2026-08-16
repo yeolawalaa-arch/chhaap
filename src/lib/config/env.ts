@@ -22,7 +22,15 @@ const schema = z.object({
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
 
   // --- core -------------------------------------------------------------
-  DATABASE_URL: z.string().min(1, "DATABASE_URL is required"),
+  /**
+   * Optional since the Blob-backed store became a supported backend. Exactly
+   * one of DATABASE_URL or BLOB_READ_WRITE_TOKEN must be present; that is
+   * checked in src/lib/db/client.ts, which is the code that has to choose.
+   * Requiring it here would make every env read throw on a Blob-only
+   * deployment, including reads that have nothing to do with storage.
+   */
+  DATABASE_URL: z.string().optional(),
+  BLOB_READ_WRITE_TOKEN: z.string().optional(),
   APP_URL: z.string().url().default("http://localhost:3000"),
   APP_NAME: z.string().default("Chhaap"),
   /** Signing key for session JWTs, OTP hashes and share tokens. */
