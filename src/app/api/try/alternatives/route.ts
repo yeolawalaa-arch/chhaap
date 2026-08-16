@@ -24,7 +24,7 @@ export const POST = handleRoute(async (req: Request) => {
   await enforce(RULES.aiGenerate, `guest-alt:${clientIp(req)}`);
 
   const { brief, directionId } = bodySchema.parse(await req.json());
-  const directions = generateDirections({ brief: brief as BrandBrief, count: 6 });
+  const directions = generateDirections({ brief: brief as BrandBrief, count: 7 });
   const direction = directions.find((d) => d.id === directionId) ?? directions[0]!;
   const spec = direction.spec;
 

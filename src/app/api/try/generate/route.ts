@@ -38,7 +38,7 @@ export const POST = handleRoute(async (req: Request) => {
   await enforce(RULES.aiGenerate, `guest:${clientIp(req)}`);
 
   const brief = briefSchema.parse(await req.json()) as BrandBrief;
-  const directions = generateDirections({ brief, count: 6 });
+  const directions = generateDirections({ brief, count: 7 });
 
   return NextResponse.json({
     directions: directions.map((direction) => {

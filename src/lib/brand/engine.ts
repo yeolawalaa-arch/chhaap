@@ -125,6 +125,29 @@ const ARCHETYPES: Archetype[] = [
     lockup: "stacked",
   },
   {
+    id: "fine-line",
+    label: "Fine Line",
+    summary: "A hairline mark and widely tracked type. Restraint, held with confidence.",
+    markStyles: ["glyph", "abstract-orbit", "monogram"],
+    enclosures: ["circle", "diamond", "none"],
+    forceDisplay: "serif",
+    tweak: (p) => ({
+      ...p,
+      saturation: p.saturation - 0.4,
+      lightness: p.lightness - 0.15,
+      weight: Math.min(500, p.weight),
+      capsBias: 1,
+      tracking: Math.max(p.tracking, 0.16),
+    }),
+    fit: (i, p) =>
+      0.3 +
+      (p.traits.some((t) => t.id === "premium" || t.id === "minimal") ? 0.45 : 0) +
+      (i.group === "fashion" || i.group === "beauty" || i.group === "property" ? 0.2 : 0),
+    narrative: (name) =>
+      `${name} drawn at the lightest weight that still survives print. Hairline marks read as expensive because they assume the viewer is paying attention — the opposite bet to a bold logo shouting across a road.`,
+    lockup: "stacked",
+  },
+  {
     id: "structured-grid",
     label: "Structured Grid",
     summary: "An engineered mark on a visible grid. Precise, systematic, technical.",
@@ -188,6 +211,14 @@ function generateMark(
     style === "glyph" && (!glyph || !glyphExists(glyph)) ? "monogram" : style;
 
   const solid = enclosure !== "none" && rng.bool(0.62);
+  const fillStyle: MarkSpec["fillStyle"] =
+    archetype.id === "fine-line"
+      ? "monoline"
+      : solid
+        ? "solid"
+        : enclosure === "none"
+          ? "solid"
+          : rng.pick(["outline", "duotone"] as const);
 
   return {
     style: resolvedStyle,
@@ -197,7 +228,7 @@ function generateMark(
     // Heavier personalities get heavier strokes, clamped to what stays legible
     // when the mark is reproduced 16px wide as a favicon.
     strokeWeight: Math.round(clamp(6 + profile.weight / 90 + profile.contrast * 2, 5, 12)),
-    fillStyle: solid ? "solid" : enclosure === "none" ? "solid" : rng.pick(["outline", "duotone"] as const),
+    fillStyle,
     symmetry: resolvedStyle === "abstract-petal" ? rng.int(5, 8) : rng.int(3, 6),
     cornerRadius: enclosure === "rounded-square" ? rng.int(14, 26) : rng.int(2, 8),
     inset: clamp(rng.float(0.5, 0.66) - (enclosure === "none" ? 0 : 0.06), 0.4, 0.72),

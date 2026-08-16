@@ -172,7 +172,7 @@ export interface MarkSpec {
   /** Stroke weight in the mark's 100×100 design space. */
   strokeWeight: number;
   /** Fill treatment of the enclosure. */
-  fillStyle: "solid" | "outline" | "duotone" | "gradient";
+  fillStyle: "solid" | "outline" | "duotone" | "gradient" | "monoline";
   /** Rotational symmetry count for abstract marks (petal/orbit). */
   symmetry: number;
   cornerRadius: number;

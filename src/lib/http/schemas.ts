@@ -94,11 +94,11 @@ export const briefSchema = z.object({
 
 export const createBrandSchema = z.object({
   brief: briefSchema,
-  count: z.coerce.number().int().min(2).max(6).default(6),
+  count: z.coerce.number().int().min(2).max(7).default(7),
 });
 
 export const regenerateSchema = z.object({
-  count: z.coerce.number().int().min(2).max(6).default(6),
+  count: z.coerce.number().int().min(2).max(7).default(7),
 });
 
 export const selectDirectionSchema = z.object({
@@ -159,7 +159,7 @@ const markSpecSchema = z.object({
     "banner",
   ]),
   strokeWeight: z.number().min(1).max(30),
-  fillStyle: z.enum(["solid", "outline", "duotone", "gradient"]),
+  fillStyle: z.enum(["solid", "outline", "duotone", "gradient", "monoline"]),
   symmetry: z.number().int().min(2).max(12),
   cornerRadius: z.number().min(0).max(50),
   inset: z.number().min(0.1).max(1),

@@ -198,6 +198,16 @@ function stackMark(symmetry: number, strokeWeight: number, fg: string, accent: s
   return group({}, parts.join(""));
 }
 
+/**
+ * A letterform with a clean horizontal cut through it.
+ *
+ * The previous version laid a diagonal accent band across the glyph, which
+ * read as a stray mark rather than a decision — the single cheapest-looking
+ * element in the whole system. This instead slices the letter and offsets the
+ * lower half by a hair: a deliberate, quiet device that survives being
+ * reproduced in one colour, because it is negative space rather than a second
+ * ink.
+ */
 function letterCutMark(
   initial: string,
   family: string,
@@ -205,28 +215,36 @@ function letterCutMark(
   fg: string,
   accent: string,
 ): string {
-  const clip = uid("cut");
-  // The initial is set large, then a diagonal band is overlaid in the accent —
-  // a "cut" letterform. The clip keeps the band inside the glyph's own box.
+  const clipTop = uid("cutT");
+  const clipBottom = uid("cutB");
+  const cutY = 54;
+  const gap = Math.max(2.5, strokeWeight * 0.32);
+
+  const glyph = (fill: string) =>
+    tag(
+      "text",
+      {
+        x: 50,
+        y: 50,
+        "font-family": family,
+        "font-size": 82,
+        "font-weight": 700,
+        fill,
+        "text-anchor": "middle",
+        "dominant-baseline": "central",
+      },
+      esc(initial),
+    );
+
   return (
-    tag("clipPath", { id: clip }, rect({ x: 6, y: 6, width: 88, height: 88 })) +
+    tag("clipPath", { id: clipTop }, rect({ x: -10, y: -10, width: 120, height: cutY + 10 })) +
+    tag("clipPath", { id: clipBottom }, rect({ x: -10, y: cutY + gap, width: 120, height: 120 })) +
+    group({ "clip-path": `url(#${clipTop})` }, glyph(fg)) +
+    // The lower half shifts a fraction right, so the cut reads as intentional
+    // at a glance and disappears into a solid letter at very small sizes.
     group(
-      { "clip-path": `url(#${clip})` },
-      tag(
-        "text",
-        {
-          x: 50,
-          y: 50,
-          "font-family": family,
-          "font-size": 84,
-          "font-weight": 800,
-          fill: fg,
-          "text-anchor": "middle",
-          "dominant-baseline": "central",
-        },
-        esc(initial),
-      ) +
-        path("M-10 66 L110 34 L110 48 L-10 80 Z", { fill: accent, opacity: 0.92 }),
+      { "clip-path": `url(#${clipBottom})`, transform: `translate(${n(gap * 0.9)} 0)` },
+      glyph(fg),
     )
   );
 }
@@ -253,6 +271,12 @@ export function renderMark({
   const solid = mark.fillStyle === "solid" && mark.enclosure !== "none";
   const duotone = mark.fillStyle === "duotone" && mark.enclosure !== "none";
 
+  // Monoline draws everything at a hairline weight — the restraint that reads
+  // as considered rather than loud. It is held above 1.6 units because below
+  // that the stroke disappears entirely once the mark is reproduced small.
+  const monoline = mark.fillStyle === "monoline";
+  const strokeWeight = monoline ? Math.max(1.6, mark.strokeWeight * 0.3) : mark.strokeWeight;
+
   // In a solid enclosure the symbol is knocked out of the shape, so it takes
   // the background colour. Everywhere else it takes the foreground.
   const symbolColor = solid ? bg : fg;
@@ -277,7 +301,7 @@ export function renderMark({
       parts.push(path(enclosure, { fill: accent, opacity: 0.16 }));
       parts.push(path(enclosure, { fill: "none", stroke: fg, "stroke-width": mark.strokeWeight * 0.7 }));
     } else {
-      parts.push(path(enclosure, { fill: "none", stroke: fg, "stroke-width": mark.strokeWeight }));
+      parts.push(path(enclosure, { fill: "none", stroke: fg, "stroke-width": strokeWeight }));
     }
   }
 
@@ -295,7 +319,7 @@ export function renderMark({
     mark.enclosure === "none"
       ? (STANDALONE_BOOST[mark.style] ?? 1)
       : mark.inset * 1.55;
-  const inner = renderSymbol(mark, family, symbolColor, symbolAccent, resolve);
+  const inner = renderSymbol({ ...mark, strokeWeight }, family, symbolColor, symbolAccent, resolve);
   const symbolTransform =
     scale === 1 ? undefined : `translate(50 50) scale(${n(scale)}) translate(-50 -50)`;
 

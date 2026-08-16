@@ -88,7 +88,7 @@ const STYLE_LABEL: Record<string, string> = {
 export function markAlternatives(
   spec: BrandIdentitySpec,
   industryKey: string,
-  count = 12,
+  count = 16,
 ): MarkOption[] {
   const industry = getIndustry(industryKey);
   const rng = new Rng(hashString(`${spec.name}|marks|${spec.directionId}`));
@@ -121,7 +121,13 @@ export function markAlternatives(
     push({ ...spec.mark, style, glyph: undefined, symmetry: rng.int(4, 7) }, STYLE_LABEL[style]!);
   }
 
-  // 4. The monogram, and the current mark in other enclosures.
+  // 4. A hairline treatment of the current mark — the same symbol read as
+  //    restrained rather than loud, which is often the whole difference.
+  push({ ...spec.mark, fillStyle: "monoline" }, "Fine line");
+  push({ ...spec.mark, fillStyle: "outline" }, "Outline");
+  push({ ...spec.mark, fillStyle: "solid" }, "Solid");
+
+  // 5. The monogram, and the current mark in other enclosures.
   push({ ...spec.mark, style: "monogram", glyph: undefined }, "Monogram");
   for (const enclosure of ENCLOSURES) {
     push({ ...spec.mark, enclosure }, enclosure === "none" ? "No frame" : titleCase(enclosure));

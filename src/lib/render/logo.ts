@@ -80,6 +80,36 @@ function colorModeFor(variation: LogoVariation): ColorMode {
   }
 }
 
+/**
+ * Largest display size at which the name still fits the available width.
+ *
+ * Without this a long name simply overflows the viewBox and is clipped on
+ * export — "Thread & Loom" came out as "IREAD & LOO". Long names are exactly
+ * the case a brand tool must handle gracefully, so the type scales to fit
+ * rather than the canvas growing (which would break every lockup's proportion)
+ * or the name truncating (which is unusable).
+ */
+function fitTextSize(
+  text: string,
+  preferred: number,
+  maxWidth: number,
+  font: { weight: number; letterSpacing: number; transform: string },
+  serif: boolean,
+  minimum = 0.42,
+): number {
+  if (!text) return preferred;
+  const content = font.transform === "uppercase" ? text.toUpperCase() : text;
+  const width = estimateTextWidth(content, preferred, {
+    weight: font.weight,
+    letterSpacing: font.letterSpacing,
+    serif,
+  });
+  if (width <= maxWidth) return preferred;
+  // Never shrink past the point of illegibility; below that the name itself is
+  // too long for the lockup and the quality check flags it.
+  return Math.max(preferred * minimum, preferred * (maxWidth / width));
+}
+
 export function buildLogoDocument(
   spec: BrandIdentitySpec,
   variation: LogoVariation,
@@ -108,14 +138,19 @@ export function buildLogoDocument(
   }
 
   if (lockup === "horizontal") {
-    const markSize = showMark ? 132 : 0;
-    const gap = showMark ? 32 : 0;
-    const nameSize = 68;
-    const nameWidth = estimateTextWidth(spec.name, nameSize, {
-      weight: display.weight,
-      letterSpacing: display.letterSpacing,
-      serif,
-    });
+    // The mark was reading as an afterthought beside a large wordmark. Sizing
+    // it against the name's cap height, not a fixed constant, keeps the pair
+    // balanced whatever the name's length.
+    const markSize = showMark ? 148 : 0;
+    const gap = showMark ? 38 : 0;
+
+    const availableForText = canvas.width - markSize - gap - 56;
+    const nameSize = fitTextSize(spec.name, 68, availableForText, display, serif);
+    const nameWidth = estimateTextWidth(
+      display.transform === "uppercase" ? spec.name.toUpperCase() : spec.name,
+      nameSize,
+      { weight: display.weight, letterSpacing: display.letterSpacing, serif },
+    );
     const descSize = 21;
     const hasDesc = !!spec.descriptor;
     const hasLocal = !!spec.localName && !!local;
@@ -154,7 +189,13 @@ export function buildLogoDocument(
   // --- stacked and badge ---------------------------------------------------
   const isBadge = lockup === "badge";
   const markSize = showMark ? (isBadge ? 200 : 176) : 0;
-  const nameSize = isBadge ? 52 : 60;
+  const nameSize = fitTextSize(
+    spec.name,
+    isBadge ? 52 : 60,
+    canvas.width - 72,
+    display,
+    serif,
+  );
   const descSize = isBadge ? 18 : 20;
   const cx = canvas.width / 2;
   const hasDesc = !!spec.descriptor;

@@ -812,6 +812,7 @@ export function LogoStudio(props: StudioProps) {
                     <option value="solid">Solid</option>
                     <option value="outline">Outline</option>
                     <option value="duotone">Duotone</option>
+                    <option value="monoline">Monoline (fine)</option>
                     <option value="gradient">Gradient</option>
                   </Select>
                 </Field>
