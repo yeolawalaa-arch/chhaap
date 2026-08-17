@@ -4,6 +4,7 @@ import { industriesByGroup } from "@/lib/brand/industries";
 import { TRAIT_LIST } from "@/lib/brand/personality";
 import { LANGUAGE_LIST } from "@/lib/brand/languages";
 import { MOOD_LIST } from "@/lib/brand/palettes";
+import { marketingSamples, assetShowcase } from "@/lib/marketing/samples";
 import { db } from "@/lib/db/client";
 
 export const dynamic = "force-dynamic";
@@ -30,10 +31,12 @@ export default async function TryPage() {
         traits: TRAIT_LIST,
         languages: LANGUAGE_LIST,
         moods: [
-          { mood: "auto", label: "Auto — let the engine choose", hint: "" },
+          { mood: "auto", label: "Auto", hint: "Let the engine choose from your category and personality" },
           ...MOOD_LIST.map((m) => ({ mood: m.mood, label: m.label, hint: m.hint })),
         ],
         accountsAvailable,
+        samples: marketingSamples(),
+        showcase: assetShowcase(["visiting_card", "instagram_post", "signboard", "shopping_bag"]),
       }}
     />
   );

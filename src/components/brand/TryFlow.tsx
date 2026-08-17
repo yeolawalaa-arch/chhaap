@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import {
   Badge,
   Button,
@@ -9,6 +9,7 @@ import {
   Chip,
   Field,
   Input,
+  Progress,
   Select,
   SvgFrame,
   Textarea,
@@ -17,11 +18,15 @@ import {
 } from "@/components/ui";
 import { QualityPanel } from "@/components/brand/QualityPanel";
 import { GuestOptionsPanel } from "@/components/brand/GuestOptionsPanel";
+import { CategoryPicker } from "@/components/brand/CategoryPicker";
+import { MoodPicker } from "@/components/brand/MoodPicker";
+import { SparkleIcon } from "@/components/marketing/icons";
 import { ApiError, api } from "@/lib/client/api";
 import { saveBlob, svgToBlob } from "@/lib/client/rasterize";
 import type { IndustryGroup, IndustryProfile } from "@/lib/brand/industries";
 import type { LanguageDef } from "@/lib/brand/languages";
 import type { TraitDef } from "@/lib/brand/personality";
+import type { Sample, AssetShowcase } from "@/lib/marketing/samples";
 import type {
   BrandBrief,
   BrandIdentitySpec,
@@ -62,9 +67,75 @@ export interface TryData {
   languages: LanguageDef[];
   moods: { mood: ColorMood; label: string; hint: string }[];
   accountsAvailable: boolean;
+  samples: Sample[];
+  showcase: AssetShowcase;
 }
 
 type Stage = "brief" | "directions" | "brand";
+
+const WIZARD_STEPS = [
+  {
+    key: "business",
+    title: "Your business",
+    why: "Your name and city set the tone before a single colour gets picked.",
+  },
+  {
+    key: "category",
+    title: "Category",
+    why: "Every category reads with different colours, marks and assets — this is what points the engine.",
+  },
+  {
+    key: "audience",
+    title: "Who buys from you",
+    why: "The audience shapes the voice more than the product does.",
+  },
+  {
+    key: "personality",
+    title: "Personality",
+    why: "The single biggest lever on how the final brand looks. Pick up to four.",
+  },
+  {
+    key: "style",
+    title: "Colour & language",
+    why: "Optional steer — leave Colour on Auto and the engine reasons it out from your category.",
+  },
+  {
+    key: "review",
+    title: "Review",
+    why: "Last look before Chhaap builds six complete brand systems.",
+  },
+] as const;
+
+const FIELD_STEP: Record<string, number> = {
+  businessName: 0,
+  city: 0,
+  descriptor: 0,
+  industry: 1,
+  audience: 2,
+  personality: 3,
+  colorMood: 4,
+  language: 4,
+  localName: 4,
+};
+
+const SYSTEM_CONTENTS = [
+  { title: "Logo direction", body: "A distinct mark and lockup — not a font with a swoosh bolted on." },
+  { title: "Colour palette", body: "Primary, accent and neutrals, contrast-checked for print and screen." },
+  { title: "Typography", body: "A display and body pairing chosen for your category, not a safe default." },
+  { title: "Brand personality", body: "The traits you picked, translated into visual weight and tone." },
+  { title: "Visual language", body: "Patterns and textures that extend the mark onto packaging and posts." },
+  { title: "Brand applications", body: "Visiting card, signboard, Instagram post and more — rendered, not mocked." },
+];
+
+const ARCHETYPE_NAMES = [
+  "Modern Mark",
+  "Heritage Seal",
+  "Bold Letterform",
+  "Warm Signature",
+  "Quiet Wordmark",
+  "Fine Line",
+  "Structured Grid",
+];
 
 export function TryFlow({ data }: { data: TryData }) {
   const toast = useToast();
@@ -87,15 +158,32 @@ export function TryFlow({ data }: { data: TryData }) {
   const [language, setLanguage] = useState<LanguageCode>("en");
   const [localName, setLocalName] = useState("");
   const [reroll, setReroll] = useState(0);
+  const [wizardStep, setWizardStep] = useState(0);
+  const wizardRef = useRef<HTMLDivElement>(null);
 
   const selectedLanguage = data.languages.find((l) => l.code === language);
   const needsLocalName = selectedLanguage && selectedLanguage.script !== "latin";
   const ready = businessName.trim() && industry && audience.trim().length >= 3 && personality.length;
+  const selectedIndustry = data.industryGroups.flatMap((g) => g.items).find((i) => i.key === industry);
+
+  const stepValid = [
+    businessName.trim().length > 0,
+    industry !== "",
+    audience.trim().length >= 3,
+    personality.length > 0,
+    true,
+    true,
+  ];
 
   function toggleTrait(id: PersonalityTrait) {
     setPersonality((c) =>
       c.includes(id) ? c.filter((t) => t !== id) : c.length >= 4 ? c : [...c, id],
     );
+  }
+
+  function goStep(next: number) {
+    setWizardStep(Math.max(0, Math.min(WIZARD_STEPS.length - 1, next)));
+    requestAnimationFrame(() => wizardRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }));
   }
 
   async function generate(salt?: string) {
@@ -121,6 +209,8 @@ export function TryFlow({ data }: { data: TryData }) {
       if (err instanceof ApiError) {
         setFields(err.fields);
         toast.error(err.message);
+        const erroredSteps = Object.keys(err.fields).map((f) => FIELD_STEP[f] ?? 0);
+        if (erroredSteps.length) goStep(Math.min(...erroredSteps));
       } else {
         toast.error("Could not generate. Please try again.");
       }
@@ -485,153 +575,353 @@ export function TryFlow({ data }: { data: TryData }) {
   // Stage 1 — the brief
   // =========================================================================
   return (
-    <div className="max-w-3xl mx-auto px-5 py-10 sm:py-14">
-      <Badge tone="brand" className="mb-4">
-        No account needed
-      </Badge>
-      <h1 className="text-[32px] sm:text-[40px] font-semibold tracking-[-0.025em] leading-[1.08]">
-        Try it on your own business
-      </h1>
-      <p className="mt-3 text-[16px] text-ink-soft leading-relaxed">
-        Answer these and get four complete brand systems — logo, colours, type, assets and voice.
-        Nothing is saved anywhere.
-      </p>
+    <div>
+      {/* ---------------------------------------------------------------- */}
+      {/* Hero                                                              */}
+      {/* ---------------------------------------------------------------- */}
+      <section className="px-5 pt-14 pb-16 sm:pt-20 sm:pb-20">
+        <div className="max-w-2xl mx-auto text-center animate-in-up">
+          <div className="flex items-center justify-center gap-2 flex-wrap mb-5">
+            <Badge tone="brand">No account needed</Badge>
+            <Badge tone="neutral">Nothing is saved</Badge>
+          </div>
 
-      <div className="mt-8 space-y-6">
-        <div className="grid sm:grid-cols-2 gap-4">
-          <Field label="Business name" error={fields.businessName} required htmlFor="name">
-            <Input
-              id="name"
-              value={businessName}
-              onChange={(e) => setBusinessName(e.target.value)}
-              placeholder="Sharma Kirana"
-              maxLength={60}
-              autoFocus
-              invalid={!!fields.businessName}
-            />
-          </Field>
-          <Field label="City" hint="Optional" htmlFor="city">
-            <Input id="city" value={city} onChange={(e) => setCity(e.target.value)} placeholder="Indore" maxLength={60} />
-          </Field>
+          <h1 className="text-[38px] sm:text-[54px] leading-[1.04] font-semibold tracking-[-0.03em]">
+            Build a brand,
+            <br />
+            <span className="text-brand-500">not just a logo.</span>
+          </h1>
+
+          <p className="mt-5 text-[16px] sm:text-[18px] text-ink-soft leading-relaxed max-w-xl mx-auto">
+            Chhaap builds a complete identity for your Indian business — logo, colours,
+            typography, voice and the assets you&rsquo;ll actually print. Free, and nothing is
+            saved until you download it.
+          </p>
+
+          <div className="mt-8 flex flex-col sm:flex-row gap-3 justify-center">
+            <Button size="lg" variant="secondary" onClick={() => goStep(0)}>
+              Start building — free
+            </Button>
+            <a href="#see-output">
+              <Button size="lg" variant="outline" full>
+                See a sample brand
+              </Button>
+            </a>
+          </div>
+
+          <p className="mt-5 text-[13px] text-muted">
+            {data.industryGroups.reduce((n, g) => n + g.items.length, 0)} categories · 11 Indian
+            languages · about 2 minutes
+          </p>
         </div>
+      </section>
 
-        <Field label="Descriptor" hint="The small line under your name. Optional." htmlFor="descriptor">
-          <Input
-            id="descriptor"
-            value={descriptor}
-            onChange={(e) => setDescriptor(e.target.value)}
-            placeholder="Provision & Daily Needs"
-            maxLength={60}
-          />
-        </Field>
+      {/* ---------------------------------------------------------------- */}
+      {/* Show the output before asking for input                          */}
+      {/* ---------------------------------------------------------------- */}
+      <section id="see-output" className="px-5 py-14 sm:py-16 border-y border-line bg-white scroll-mt-16">
+        <div className="max-w-6xl mx-auto">
+          <p className="text-center text-[13px] text-muted mb-8">
+            Every brand below was generated by the same engine, on this page load — not drawn by
+            hand.
+          </p>
 
-        <Field label="Category" error={fields.industry} required>
-          <div className="space-y-3 mt-1">
-            {data.industryGroups.map((group) => (
-              <div key={group.group}>
-                <p className="text-[11.5px] uppercase tracking-[0.11em] text-faint font-semibold mb-2">
-                  {group.label}
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  {group.items.map((item) => (
-                    <Chip
-                      key={item.key}
-                      selected={industry === item.key}
-                      onClick={() => setIndustry(item.key)}
-                      title={item.hint}
-                    >
-                      {item.name}
-                    </Chip>
-                  ))}
-                </div>
+          <div className="flex gap-3.5 overflow-x-auto pb-2 -mx-5 px-5 snap-x snap-mandatory sm:mx-0 sm:px-0 sm:grid sm:grid-cols-3 lg:grid-cols-6 sm:overflow-visible">
+            {data.samples.map((sample) => (
+              <div key={sample.name} className="shrink-0 w-[220px] sm:w-auto snap-start">
+                <Card className="p-4 h-full flex flex-col">
+                  <div className="h-24 flex items-center justify-center">
+                    <SvgFrame svg={sample.icon} className="h-full w-full" label={`${sample.name} logo`} />
+                  </div>
+                  <div className="mt-3 pt-3 border-t border-line-soft">
+                    <div className="flex gap-1">
+                      {[sample.palette.primary, sample.palette.accent, sample.palette.ink].map((hex) => (
+                        <span
+                          key={hex}
+                          className="w-5 h-5 rounded-[5px] border border-ink/8"
+                          style={{ background: hex }}
+                        />
+                      ))}
+                    </div>
+                    <p className="mt-2.5 text-[12px] font-medium text-ink truncate">
+                      {sample.fonts.display}
+                    </p>
+                    {sample.tagline && (
+                      <p className="mt-1 text-[11.5px] text-muted leading-snug line-clamp-2">
+                        &ldquo;{sample.tagline}&rdquo;
+                      </p>
+                    )}
+                  </div>
+                </Card>
               </div>
             ))}
           </div>
-        </Field>
 
-        <Field label="Who buys from you?" error={fields.audience} required htmlFor="audience">
-          <Textarea
-            id="audience"
-            value={audience}
-            onChange={(e) => setAudience(e.target.value)}
-            placeholder="Families in the neighbourhood who shop weekly and care about fresh stock and fair prices."
-            maxLength={200}
-            rows={2}
-            invalid={!!fields.audience}
-          />
-        </Field>
-
-        <Field label="How should it feel?" error={fields.personality} required>
-          <div className="flex flex-wrap gap-2 mt-1">
-            {data.traits.map((trait) => (
-              <Chip
-                key={trait.id}
-                selected={personality.includes(trait.id)}
-                onClick={() => toggleTrait(trait.id)}
-                disabled={personality.length >= 4 && !personality.includes(trait.id)}
-                title={trait.hint}
-              >
-                {trait.label}
-              </Chip>
-            ))}
+          <div className="mt-12">
+            <p className="text-center text-[13px] text-muted mb-6">
+              …and every asset it needs, rendered from that one system
+            </p>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              {data.showcase.items.map((item) => (
+                <Card key={item.kind} interactive className="overflow-hidden">
+                  <div
+                    className="bg-paper-alt border-b border-line-soft overflow-hidden"
+                    style={{ aspectRatio: item.ratio }}
+                  >
+                    <SvgFrame svg={item.svg} contain={false} label={item.label} />
+                  </div>
+                  <p className="px-3 py-2.5 text-[12.5px] font-medium text-ink">{item.label}</p>
+                </Card>
+              ))}
+            </div>
           </div>
-        </Field>
+        </div>
+      </section>
 
-        <div className="grid sm:grid-cols-2 gap-4">
-          <Field label="Colour direction" htmlFor="mood">
-            <Select id="mood" value={colorMood} onChange={(e) => setColorMood(e.target.value as ColorMood)}>
-              {data.moods.map((m) => (
-                <option key={m.mood} value={m.mood}>
-                  {m.label}
-                </option>
-              ))}
-            </Select>
-          </Field>
-          <Field label="Language" htmlFor="lang">
-            <Select
-              id="lang"
-              value={language}
-              onChange={(e) => setLanguage(e.target.value as LanguageCode)}
-            >
-              {data.languages.map((l) => (
-                <option key={l.code} value={l.code}>
-                  {l.nativeName} — {l.name}
-                </option>
-              ))}
-            </Select>
-          </Field>
+      {/* ---------------------------------------------------------------- */}
+      {/* Six complete systems                                             */}
+      {/* ---------------------------------------------------------------- */}
+      <section className="px-5 py-16 sm:py-20">
+        <div className="max-w-3xl mx-auto text-center">
+          <h2 className="text-[26px] sm:text-[34px] font-semibold tracking-[-0.025em] leading-[1.15]">
+            Six complete brand systems, not six logos
+          </h2>
+          <p className="mt-3 text-[15px] sm:text-[16px] text-ink-soft leading-relaxed max-w-xl mx-auto">
+            Every direction carries its own logic end to end. Pick the one that feels right, and
+            everything downstream already matches it.
+          </p>
         </div>
 
-        {needsLocalName && (
-          <Field
-            label={`Your name in ${selectedLanguage!.name}`}
-            hint="Optional. Adds a bilingual lockup to your logo and signboard."
-            htmlFor="localName"
-          >
-            <Input
-              id="localName"
-              value={localName}
-              onChange={(e) => setLocalName(e.target.value)}
-              placeholder={selectedLanguage!.sample}
-              maxLength={60}
-              lang={selectedLanguage!.code}
-            />
-          </Field>
-        )}
+        <div className="mt-10 max-w-4xl mx-auto grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {SYSTEM_CONTENTS.map((item) => (
+            <div key={item.title} className="p-5 rounded-[14px] border border-line bg-white">
+              <p className="text-[13.5px] font-semibold text-ink">{item.title}</p>
+              <p className="mt-1.5 text-[12.5px] text-muted leading-relaxed">{item.body}</p>
+            </div>
+          ))}
+        </div>
 
-        <Button size="lg" full variant="secondary" onClick={() => generate()} loading={busy} disabled={!ready}>
-          {busy ? "Building four brand systems…" : "Generate my brand"}
-        </Button>
+        <div className="mt-8 flex flex-wrap justify-center gap-2 max-w-2xl mx-auto">
+          {ARCHETYPE_NAMES.map((name) => (
+            <span
+              key={name}
+              className="px-3 h-7 inline-flex items-center rounded-full bg-paper-alt border border-line text-[12px] text-ink-soft"
+            >
+              {name}
+            </span>
+          ))}
+        </div>
+      </section>
 
-        {data.accountsAvailable && (
-          <p className="text-center text-[13.5px] text-muted">
-            Want to save and edit it?{" "}
-            <Link href="/signup" className="text-ink font-medium hover:text-brand-600">
-              Create a free account
-            </Link>
-          </p>
-        )}
-      </div>
+      {/* ---------------------------------------------------------------- */}
+      {/* The wizard                                                       */}
+      {/* ---------------------------------------------------------------- */}
+      <section ref={wizardRef} className="px-5 py-16 sm:py-20 bg-white border-t border-line scroll-mt-16">
+        <div className="max-w-xl mx-auto">
+          <div className="flex items-center justify-between mb-2.5">
+            <p className="text-[12px] font-semibold text-ink tabular-nums">
+              {String(wizardStep + 1).padStart(2, "0")} / {String(WIZARD_STEPS.length).padStart(2, "0")}
+            </p>
+            <p className="text-[12px] text-faint">{WIZARD_STEPS[wizardStep]!.title}</p>
+          </div>
+          <Progress value={((wizardStep + 1) / WIZARD_STEPS.length) * 100} className="mb-9" />
+
+          <div key={wizardStep} className="animate-fade">
+            <h2 className="text-[22px] sm:text-[27px] font-semibold tracking-[-0.02em]">
+              {WIZARD_STEPS[wizardStep]!.title}
+            </h2>
+            <p className="mt-2 text-[13.5px] text-muted leading-relaxed flex items-start gap-1.5">
+              <SparkleIcon className="shrink-0 mt-0.5 text-brand-500" size={13} />
+              {WIZARD_STEPS[wizardStep]!.why}
+            </p>
+
+            <div className="mt-7 space-y-6">
+              {wizardStep === 0 && (
+                <>
+                  <Field label="Business name" error={fields.businessName} required htmlFor="name">
+                    <Input
+                      id="name"
+                      value={businessName}
+                      onChange={(e) => setBusinessName(e.target.value)}
+                      placeholder="Sharma Kirana"
+                      maxLength={60}
+                      invalid={!!fields.businessName}
+                      className="h-12 text-[15px]"
+                    />
+                  </Field>
+                  <div className="grid sm:grid-cols-2 gap-4">
+                    <Field label="City" hint="Optional" htmlFor="city">
+                      <Input
+                        id="city"
+                        value={city}
+                        onChange={(e) => setCity(e.target.value)}
+                        placeholder="Indore"
+                        maxLength={60}
+                      />
+                    </Field>
+                    <Field label="Descriptor" hint="The line under your name. Optional." htmlFor="descriptor">
+                      <Input
+                        id="descriptor"
+                        value={descriptor}
+                        onChange={(e) => setDescriptor(e.target.value)}
+                        placeholder="Provision & Daily Needs"
+                        maxLength={60}
+                      />
+                    </Field>
+                  </div>
+                </>
+              )}
+
+              {wizardStep === 1 && (
+                <Field error={fields.industry}>
+                  <CategoryPicker groups={data.industryGroups} value={industry} onChange={setIndustry} />
+                </Field>
+              )}
+
+              {wizardStep === 2 && (
+                <Field error={fields.audience} htmlFor="audience">
+                  <Textarea
+                    id="audience"
+                    value={audience}
+                    onChange={(e) => setAudience(e.target.value)}
+                    placeholder="Families in the neighbourhood who shop weekly and care about fresh stock and fair prices."
+                    maxLength={200}
+                    rows={4}
+                    invalid={!!fields.audience}
+                    className="text-[15px]"
+                  />
+                  <p className="mt-1.5 text-[12px] text-faint text-right">{audience.length}/200</p>
+                </Field>
+              )}
+
+              {wizardStep === 3 && (
+                <Field error={fields.personality}>
+                  <div className="flex flex-wrap gap-2">
+                    {data.traits.map((trait) => (
+                      <Chip
+                        key={trait.id}
+                        selected={personality.includes(trait.id)}
+                        onClick={() => toggleTrait(trait.id)}
+                        disabled={personality.length >= 4 && !personality.includes(trait.id)}
+                        title={trait.hint}
+                      >
+                        {trait.label}
+                      </Chip>
+                    ))}
+                  </div>
+                  <p className="mt-3 text-[12px] text-faint">{personality.length}/4 selected</p>
+                </Field>
+              )}
+
+              {wizardStep === 4 && (
+                <>
+                  <Field label="Colour direction" htmlFor="mood">
+                    <MoodPicker moods={data.moods} value={colorMood} onChange={setColorMood} />
+                  </Field>
+                  <Field label="Language" htmlFor="lang">
+                    <Select
+                      id="lang"
+                      value={language}
+                      onChange={(e) => setLanguage(e.target.value as LanguageCode)}
+                    >
+                      {data.languages.map((l) => (
+                        <option key={l.code} value={l.code}>
+                          {l.nativeName} — {l.name}
+                        </option>
+                      ))}
+                    </Select>
+                  </Field>
+                  {needsLocalName && (
+                    <Field
+                      label={`Your name in ${selectedLanguage!.name}`}
+                      hint="Optional. Adds a bilingual lockup to your logo and signboard."
+                      htmlFor="localName"
+                    >
+                      <Input
+                        id="localName"
+                        value={localName}
+                        onChange={(e) => setLocalName(e.target.value)}
+                        placeholder={selectedLanguage!.sample}
+                        maxLength={60}
+                        lang={selectedLanguage!.code}
+                      />
+                    </Field>
+                  )}
+                </>
+              )}
+
+              {wizardStep === 5 && (
+                <div className="rounded-[14px] border border-line divide-y divide-line-soft overflow-hidden">
+                  {[
+                    { label: "Business", value: businessName || "—", step: 0 },
+                    { label: "Category", value: selectedIndustry?.name ?? "—", step: 1 },
+                    { label: "Audience", value: audience || "—", step: 2 },
+                    {
+                      label: "Personality",
+                      value: personality.length
+                        ? personality.map((p) => data.traits.find((t) => t.id === p)?.label ?? p).join(", ")
+                        : "—",
+                      step: 3,
+                    },
+                    {
+                      label: "Colour & language",
+                      value: `${data.moods.find((m) => m.mood === colorMood)?.label ?? "Auto"} · ${selectedLanguage?.name ?? "English"}`,
+                      step: 4,
+                    },
+                  ].map((row) => (
+                    <button
+                      key={row.label}
+                      type="button"
+                      onClick={() => goStep(row.step)}
+                      className="w-full flex items-start justify-between gap-4 p-4 text-left hover:bg-paper-alt transition-colors"
+                    >
+                      <span>
+                        <span className="block text-[11px] uppercase tracking-[0.1em] text-faint font-semibold">
+                          {row.label}
+                        </span>
+                        <span className="block mt-1 text-[13.5px] text-ink leading-snug line-clamp-2">
+                          {row.value}
+                        </span>
+                      </span>
+                      <span className="text-[12px] text-muted shrink-0 mt-0.5">Edit</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="mt-9 flex items-center justify-between gap-3">
+            <Button variant="ghost" onClick={() => goStep(wizardStep - 1)} disabled={wizardStep === 0}>
+              Back
+            </Button>
+
+            {wizardStep < WIZARD_STEPS.length - 1 ? (
+              <Button
+                size="lg"
+                variant="secondary"
+                onClick={() => goStep(wizardStep + 1)}
+                disabled={!stepValid[wizardStep]}
+              >
+                Next
+              </Button>
+            ) : (
+              <Button size="lg" variant="secondary" onClick={() => generate()} loading={busy} disabled={!ready}>
+                {busy ? "Building six brand systems…" : "Build My Brand"}
+              </Button>
+            )}
+          </div>
+
+          {wizardStep === WIZARD_STEPS.length - 1 && data.accountsAvailable && (
+            <p className="mt-5 text-center text-[13px] text-muted">
+              Want to save and edit it?{" "}
+              <Link href="/signup" className="text-ink font-medium hover:text-brand-600">
+                Create a free account
+              </Link>
+            </p>
+          )}
+        </div>
+      </section>
     </div>
   );
 }

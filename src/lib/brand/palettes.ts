@@ -215,6 +215,43 @@ export const MOODS: Record<Exclude<ColorMood, "auto">, MoodDef> = {
 
 export const MOOD_LIST = Object.values(MOODS);
 
+/**
+ * Representative swatches for a mood picker — computed from the same hue
+ * windows and saturation/lightness ranges the generator actually samples
+ * from, so the preview a user picks by is honest rather than a decorative
+ * stand-in colour.
+ *
+ * Moods with an unconstrained hue window (monochrome, pastel — "any hue,
+ * many steps") don't have a hue to preview, so instead they show the same
+ * neutral anchor hue stepped across the mood's own lightness range.
+ */
+export function moodSwatchHexes(mood: ColorMood): string[] {
+  if (mood === "auto") return ["#e7e3dd", "#c9c3ba", "#a8a29e"];
+
+  const def = MOODS[mood];
+  const isOpenHue = def.hues.length === 1 && def.hues[0][1] - def.hues[0][0] >= 300;
+  const s = (def.saturation[0] + def.saturation[1]) / 2;
+  const [loL, hiL] = def.lightness;
+  const midL = (loL + hiL) / 2;
+
+  if (isOpenHue) {
+    return [loL, midL, hiL].map((l) => hslToHex([28, s, l]));
+  }
+
+  if (def.hues.length >= 3) {
+    return def.hues.slice(0, 3).map(([lo, hi]) => hslToHex([((lo + hi) / 2) % 360, s, midL]));
+  }
+
+  // One or two hue windows can't fill three distinct-hue swatches, so the
+  // remaining stops vary lightness instead — still three honest samples of
+  // the mood's own range, not a repeated or padded colour.
+  const [p0, p1] = def.hues[0]!;
+  const primaryHue = ((p0 + p1) / 2) % 360;
+  const secondHue = def.hues[1] ? ((def.hues[1][0] + def.hues[1][1]) / 2) % 360 : primaryHue;
+
+  return [hslToHex([primaryHue, s, loL]), hslToHex([secondHue, s, midL]), hslToHex([primaryHue, s, hiL])];
+}
+
 // ---------------------------------------------------------------------------
 // Generation
 // ---------------------------------------------------------------------------
