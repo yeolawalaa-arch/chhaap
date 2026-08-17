@@ -30,6 +30,14 @@ export const RULES = {
   domainCheck: { name: "domain", limit: 60, windowSec: 10 * 60 },
   publicRead: { name: "public", limit: 300, windowSec: 60 * 60 },
   mutate: { name: "mutate", limit: 600, windowSec: 60 * 60 },
+  /**
+   * Free generations for a visitor with no account, ever — mirrors the signed-in
+   * Free plan's 10-a-month cap (src/lib/billing/plans.ts), except a guest has no
+   * account to reset monthly, so this is a standing allowance rather than a
+   * rolling window. Modelled as one very long window on the same bucket
+   * mechanism `enforce`/`consume` already use, rather than a second system.
+   */
+  guestGenerate: { name: "guest-lifetime", limit: 10, windowSec: 100 * 365 * 24 * 60 * 60 },
 } as const satisfies Record<string, RateLimitRule>;
 
 export interface RateLimitResult {

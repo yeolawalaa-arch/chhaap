@@ -160,6 +160,8 @@ export function TryFlow({ data }: { data: TryData }) {
   const [reroll, setReroll] = useState(0);
   const [wizardStep, setWizardStep] = useState(0);
   const wizardRef = useRef<HTMLDivElement>(null);
+  const [remaining, setRemaining] = useState<number | null>(null);
+  const [quotaMessage, setQuotaMessage] = useState<string | null>(null);
 
   const selectedLanguage = data.languages.find((l) => l.code === language);
   const needsLocalName = selectedLanguage && selectedLanguage.script !== "latin";
@@ -190,27 +192,38 @@ export function TryFlow({ data }: { data: TryData }) {
     setBusy(true);
     setFields({});
     try {
-      const res = await api.post<{ directions: GuestDirection[] }>("/api/try/generate", {
-        salt,
-        businessName: businessName.trim(),
-        descriptor: descriptor.trim() || undefined,
-        industry,
-        audience: audience.trim(),
-        personality,
-        colorMood,
-        language,
-        localName: needsLocalName && localName.trim() ? localName.trim() : undefined,
-        city: city.trim() || undefined,
-      });
+      const res = await api.post<{ directions: GuestDirection[]; remaining: number }>(
+        "/api/try/generate",
+        {
+          salt,
+          businessName: businessName.trim(),
+          descriptor: descriptor.trim() || undefined,
+          industry,
+          audience: audience.trim(),
+          personality,
+          colorMood,
+          language,
+          localName: needsLocalName && localName.trim() ? localName.trim() : undefined,
+          city: city.trim() || undefined,
+        },
+      );
       setDirections(res.directions);
+      setRemaining(res.remaining);
+      setQuotaMessage(null);
       setStage("directions");
       window.scrollTo({ top: 0, behavior: "smooth" });
     } catch (err) {
       if (err instanceof ApiError) {
-        setFields(err.fields);
-        toast.error(err.message);
-        const erroredSteps = Object.keys(err.fields).map((f) => FIELD_STEP[f] ?? 0);
-        if (erroredSteps.length) goStep(Math.min(...erroredSteps));
+        if (err.needsUpgrade) {
+          setQuotaMessage(err.message);
+          setRemaining(0);
+          toast.error(err.message);
+        } else {
+          setFields(err.fields);
+          toast.error(err.message);
+          const erroredSteps = Object.keys(err.fields).map((f) => FIELD_STEP[f] ?? 0);
+          if (erroredSteps.length) goStep(Math.min(...erroredSteps));
+        }
       } else {
         toast.error("Could not generate. Please try again.");
       }
@@ -504,20 +517,29 @@ export function TryFlow({ data }: { data: TryData }) {
           colour logic. Pick one to see the whole brand.
         </p>
 
-        <Button
-          variant="outline"
-          className="mt-5"
-          loading={busy}
-          onClick={() => {
-            // The salt is passed directly rather than read from state, which
-            // would still hold the previous value on this render.
-            const next = reroll + 1;
-            setReroll(next);
-            void generate(`r${next}`);
-          }}
-        >
-          Show me different ones
-        </Button>
+        <div className="mt-5 flex items-center gap-3">
+          <Button
+            variant="outline"
+            loading={busy}
+            disabled={remaining === 0}
+            onClick={() => {
+              // The salt is passed directly rather than read from state, which
+              // would still hold the previous value on this render.
+              const next = reroll + 1;
+              setReroll(next);
+              void generate(`r${next}`);
+            }}
+          >
+            Show me different ones
+          </Button>
+          {remaining !== null && (
+            <span className="text-[12.5px] text-muted">
+              {remaining === 0
+                ? "No free generations left"
+                : `${remaining} free generation${remaining === 1 ? "" : "s"} left`}
+            </span>
+          )}
+        </div>
 
         <div className="mt-8 grid sm:grid-cols-2 gap-5">
           {directions.map((direction) => (
@@ -905,6 +927,12 @@ export function TryFlow({ data }: { data: TryData }) {
               >
                 Next
               </Button>
+            ) : quotaMessage ? (
+              <Link href={data.accountsAvailable ? "/signup" : "/pricing"}>
+                <Button size="lg" variant="secondary">
+                  {data.accountsAvailable ? "Create a free account" : "See pricing"}
+                </Button>
+              </Link>
             ) : (
               <Button size="lg" variant="secondary" onClick={() => generate()} loading={busy} disabled={!ready}>
                 {busy ? "Building six brand systems…" : "Build My Brand"}
@@ -912,14 +940,26 @@ export function TryFlow({ data }: { data: TryData }) {
             )}
           </div>
 
-          {wizardStep === WIZARD_STEPS.length - 1 && data.accountsAvailable && (
-            <p className="mt-5 text-center text-[13px] text-muted">
-              Want to save and edit it?{" "}
-              <Link href="/signup" className="text-ink font-medium hover:text-brand-600">
-                Create a free account
-              </Link>
-            </p>
-          )}
+          {wizardStep === WIZARD_STEPS.length - 1 &&
+            (quotaMessage ? (
+              <p className="mt-5 text-center text-[13px] text-warn leading-relaxed">{quotaMessage}</p>
+            ) : (
+              <>
+                <p className="mt-3 text-center text-[12px] text-muted">
+                  {remaining === null
+                    ? "Up to 10 free generations — no account needed"
+                    : `${remaining} free generation${remaining === 1 ? "" : "s"} left`}
+                </p>
+                {data.accountsAvailable && (
+                  <p className="mt-2 text-center text-[13px] text-muted">
+                    Want to save and edit it?{" "}
+                    <Link href="/signup" className="text-ink font-medium hover:text-brand-600">
+                      Create a free account
+                    </Link>
+                  </p>
+                )}
+              </>
+            ))}
         </div>
       </section>
     </div>

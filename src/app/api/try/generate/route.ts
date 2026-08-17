@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
-import { handleRoute } from "@/lib/http/errors";
+import { handleRoute, quotaExceeded } from "@/lib/http/errors";
 import { briefSchema } from "@/lib/http/schemas";
 import { z } from "zod";
 import { generateDirections } from "@/lib/brand/engine";
 import { serializeGuestSpec } from "@/lib/brand/guest-serialize";
-import { RULES, clientIp, enforce } from "@/lib/security/rate-limit";
+import { RULES, clientIp, consume, enforce } from "@/lib/security/rate-limit";
 import type { BrandBrief } from "@/types/brand";
 
 /**
@@ -31,9 +31,23 @@ export const POST = handleRoute(async (req: Request) => {
   const body = briefSchema.extend({ salt: z.string().max(40).optional() }).parse(await req.json());
   const { salt, ...briefFields } = body;
   const brief = briefFields as BrandBrief;
+
+  // Free generations without an account are capped the same way the signed-in
+  // Free plan is (10), so evaluating the product never requires more than a
+  // guest allowance's worth of taste-testing — past that, an account is the
+  // next step, same as it is for a signed-in user out of monthly quota. Checked
+  // after body validation so a malformed request never burns a real unit.
+  const quota = await consume(RULES.guestGenerate, `guest-lifetime:${clientIp(req)}`);
+  if (!quota.allowed) {
+    throw quotaExceeded(
+      `You've used all ${RULES.guestGenerate.limit} free generations. Create a free account for more, every month.`,
+      { limit: RULES.guestGenerate.limit, upgrade: true },
+    );
+  }
   const directions = generateDirections({ brief, count: 6, salt: salt ?? "" });
 
   return NextResponse.json({
+    remaining: quota.remaining,
     directions: directions.map((direction) => ({
       id: direction.id,
       label: direction.label,
